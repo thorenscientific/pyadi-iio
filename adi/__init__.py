@@ -65,6 +65,8 @@ from adi.ad9152 import ad9152
 
 from adi.cn0532 import cn0532
 
+from adi.cn0566 import CN0566
+
 from adi.daq2 import DAQ2
 
 from adi.daq3 import DAQ3
