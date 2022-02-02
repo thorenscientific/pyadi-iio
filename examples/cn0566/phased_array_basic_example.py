@@ -10,13 +10,8 @@ import time
 rpi_ip = "ip:phaser.local"  # IP address of the Raspberry Pi
 sdr_ip = "ip:pluto.local" # "192.168.2.1"  # IP address of the Transreceiver Block
 
-try:
-    x = my_cn0566.uri
-    print("cn0566 already connected")
-except NameError:
-    print("cn0566 not open...")
-    from adi.cn0566 import CN0566
-    my_cn0566 = CN0566(uri=rpi_ip)
+
+
 try:
     x = my_sdr.uri
     print("Pluto already connected")
@@ -25,11 +20,22 @@ except NameError:
     from adi import ad9361
     my_sdr = ad9361(uri=sdr_ip)
 
-""" Configure all the device as required in Phased array beamformer project
-    Current freq plan is Sig Freq = 10.492 GHz, antenna element spacing = 0.015in Freq of pll is 12/2 GHz
+time.sleep(0.5)
+
+try:
+    x = my_cn0566.uri
+    print("cn0566 already connected")
+except NameError:
+    print("cn0566 not open...")
+    from adi.cn0566 import CN0566
+    my_cn0566 = CN0566(uri=rpi_ip, rx_dev=my_sdr)
+    
+    
+""" Configure SDR parameters.
+    Current freq plan is Sig Freq = 10.492 GHz, antenna element spacing = 0.015m, Freq of pll is 12/2 GHz
     this is mixed down using mixer to get 10.492 - 6 = 4.492GHz which is freq of sdr.
     This frequency plan can be updated any time in example code
-    e.g:- my_beamformer.SigFreq = 9Ghz etc"""
+    e.g:- my_cn0566.frequency = 9000000000 etc"""
 # configure sdr/pluto according to above-mentioned freq plan
 # my_sdr._ctrl.debug_attrs["adi,frequency-division-duplex-mode-enable"].value = "1"
 # my_sdr._ctrl.debug_attrs["adi,ensm-enable-txnrx-control-enable"].value = "0"  # Disable pin control so spi can move the states
@@ -37,7 +43,7 @@ except NameError:
 my_sdr.rx_enabled_channels = [0, 1]  # enable Rx1 (voltage0) and Rx2 (voltage1)
 my_sdr.gain_control_mode_chan1 = 'manual'  # We must be in manual gain control mode (otherwise we won't see
 my_sdr.rx_hardwaregain_chan1 = 20
-my_sdr._rxadc.set_kernel_buffers_count(1)
+my_sdr._rxadc.set_kernel_buffers_count(1) # Super important - don't want to have to flush stale buffers
 rx = my_sdr._ctrl.find_channel('voltage0')
 rx.attrs['quadrature_tracking_en'].value = '1'  # set to '1' to enable quadrature tracking
 my_sdr.sample_rate = int(30000000)  # Sampling rate
@@ -46,32 +52,46 @@ my_sdr.rx_rf_bandwidth = int(10e6)
 # We must be in manual gain control mode (otherwise we won't see the peaks and nulls!)
 my_sdr.gain_control_mode_chan0 = 'manual'
 my_sdr.gain_control_mode_chan1 = 'manual'
-my_sdr.rx_hardwaregain_chan0 = 30
-my_sdr.rx_hardwaregain_chan1 = 30
+my_sdr.rx_hardwaregain_chan0 = 20
+my_sdr.rx_hardwaregain_chan1 = 20
 my_sdr.rx_lo = 2000000000  # 4495000000  # Recieve Freq
+my_sdr.tx_lo = 2000000000
 
 my_sdr.filter="LTE20_MHz.ftr"
 rx_buffer_size = int(4 * 256)
 my_sdr.rx_buffer_size = rx_buffer_size
 
-my_cn0566.frequency = 6246000000 # Default frequency = 6247500000
+my_sdr.tx_cyclic_buffer = True
+my_sdr.tx_buffer_size = int(2**16)
+
+my_sdr.tx_hardwaregain_chan0 = int(-6) # this is a negative number between 0 and -88
+my_sdr.tx_hardwaregain_chan1 = int(-6) # Make sure the Tx channels are attenuated (or off) and their freq is far away from Rx
+
+#my_sdr.dds_enabled = [1, 1, 1, 1] #DDS generator enable state
+#my_sdr.dds_frequencies = [0.1e6, 0.1e6, 0.1e6, 0.1e6] #Frequencies of DDSs in Hz
+#my_sdr.dds_scales = [1, 1, 0, 0] #Scale of DDS signal generators Ranges [0,1]
+my_sdr.dds_single_tone(int(2e6), 0.9, 1) # sdr.dds_single_tone(tone_freq_hz, tone_scale_0to1, tx_channel)
+
+""" Configure CN0566 parameters.
+    ADF4159 and ADAR1000 array attributes are exposed directly, although normally
+    accessed through other methods."""
+
 # By default device_mode is "rx"
 my_cn0566.configure(device_mode="rx")  # Configure adar in mentioned mode and also sets gain of all channel to 127
 
-my_cn0566.frequency = 6247500000
+# HB100
+# my_cn0566.frequency = (10492000000 + 2000000000) // 4 #6247500000//2
+# Onboard source w/ external Vivaldi
+my_cn0566.frequency = (10600000000 + 2000000000) // 4
+
+my_cn0566.SignalFreq = 10600000000 # Make this automatic in the future.
+
 my_cn0566.freq_dev_step = 5690
 my_cn0566.freq_dev_range = 0
 my_cn0566.freq_dev_time = 0
 my_cn0566.powerdown = 0
 my_cn0566.ramp_mode = "disabled"
 
-
-
-""" beamformer/adar1000 uses sdr to plot the output. In order to solve that dependency we can instantiate the 
-    sdr device in beamformer class but that requires pass extra argument i.e. ip of sdr in beamformer as SDR 
-    can be connected to raspberry pi which has all other devices or a different PC that can have diff ip.
-    Alternate option is specify sdr/rx_dev instantiated on top layer like done here"""
-my_cn0566.rx_dev = my_sdr
 
 """ This can be useful in Array size vs beam width experiment or beamtappering experiment. 
     Set the gain of outer channels to 0 and beam width will increase and so on."""
@@ -125,41 +145,44 @@ my_cn0566.Averages = 8
 
 #my_cn0566.pcal = [0, -19.6875, 126.5625, 95.625, 56.25, 47.8125, 70.3125, 84.375]
     
-# for i in range(0, len(my_cn0566.pcal)):
-#     my_cn0566.set_chan_phase(i, my_cn0566.pcal[i])
+for i in range(0, 8):
+    #my_cn0566.set_chan_phase(i, my_cn0566.pcal[i])
+    my_cn0566.set_chan_phase(i, 0.0)
 
 #my_cn0566.phase_step_size = 2.8125
 while True:
     start=time.time()
-    # my_cn0566.set_beam_phase_diff(0.0)
-    # time.sleep(0.25)
-    # data = my_sdr.rx()
-    # data = my_sdr.rx()
-    # ch0 = data[0]
-    # ch1 = data[1]
-    # f, Pxx_den = signal.periodogram(ch0[1:-1], 30000000)
+    my_cn0566.set_beam_phase_diff(0.0)
+    time.sleep(0.25)
+    data = my_sdr.rx()
+    data = my_sdr.rx()
+    ch0 = data[0]
+    ch1 = data[1]
+    f, Pxx_den0 = signal.periodogram(ch0[1:-1], 30000000, 'blackman', scaling='spectrum')
+    f, Pxx_den1 = signal.periodogram(ch1[1:-1], 30000000, 'blackman', scaling='spectrum')
     
-    # plt.figure(1)
-    # plt.clf()
-    # plt.plot(np.real(ch0), color='red')
-    # plt.plot(np.imag(ch0), color='blue')
-    # plt.plot(np.real(ch1), color='green')
-    # plt.plot(np.imag(ch1), color='black')
-    # np.real
-    # plt.xlabel("data point")
-    # plt.ylabel("output code")
-    # plt.draw()
+    plt.figure(1)
+    plt.clf()
+    plt.plot(np.real(ch0), color='red')
+    plt.plot(np.imag(ch0), color='blue')
+    plt.plot(np.real(ch1), color='green')
+    plt.plot(np.imag(ch1), color='black')
+    np.real
+    plt.xlabel("data point")
+    plt.ylabel("output code")
+    plt.draw()
     
-    # plt.figure(2)
-    # plt.clf()
-    # plt.semilogy(f, Pxx_den)
-    # plt.ylim([1e-9, 1e1])
-    # plt.xlabel("frequency [Hz]")
-    # plt.ylabel("PSD [V**2/Hz]")
-    # plt.draw()
+    plt.figure(2)
+    plt.clf()
+    plt.semilogy(f, Pxx_den0)
+    plt.semilogy(f, Pxx_den1)
+    plt.ylim([1e-5, 1e6])
+    plt.xlabel("frequency [Hz]")
+    plt.ylabel("PSD [V**2/Hz]")
+    plt.draw()
     
-    # """ Plot the output based on experiment that you are performing"""
-    # print("Plotting...")
+    """ Plot the output based on experiment that you are performing"""
+    print("Plotting...")
     
     
     
