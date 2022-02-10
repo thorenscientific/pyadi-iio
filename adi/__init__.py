@@ -81,6 +81,8 @@ from adi.ad7124 import ad7124
 
 from adi.adxl345 import adxl345
 
+from adi.adxl355 import adxl355
+
 from adi.adxrs290 import adxrs290
 
 from adi.fmclidar1 import fmclidar1
@@ -126,6 +128,8 @@ from adi.fmc_vna import fmcvna
 from adi.adf4159 import adf4159
 
 from adi.tdd import tdd
+
+from adi.lm75 import lm75
 
 try:
     from adi.jesd import jesd
