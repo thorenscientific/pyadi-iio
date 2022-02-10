@@ -43,6 +43,7 @@ Supported Devices
    adi.adrv9009_zu11eg_fmcomms8
    adi.adrv9009_zu11eg_multi
    adi.adxl345
+   adi.adxl355
    adi.adxrs290
    adi.cn0532
    adi.cn0540
@@ -53,6 +54,7 @@ Supported Devices
    adi.fmcomms5
    adi.gen_mux
    adi.jesd
+   adi.lm75
    adi.ltc2314_14
    adi.ltc2983
    adi.one_bit_adc_dac
