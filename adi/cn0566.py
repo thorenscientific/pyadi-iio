@@ -38,6 +38,7 @@ import numpy as np
 import pickle
 from statistics import mean
 import matplotlib.pyplot as plt
+from time import sleep
 
 
 ''' 
@@ -96,6 +97,7 @@ class CN0566(adf4159, adar1000_array):
 
         """" GPIO pins implemented as one-bit-adc-dac """
         print("attempting to open gpios , uri: ", str(uri))
+        sleep(0.5)
         self.gpios = adi.one_bit_adc_dac(uri)
         
         # set outputs
