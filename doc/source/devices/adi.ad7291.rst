@@ -1,7 +1,7 @@
-lm75
+ad7291
 ==================
 
-.. automodule:: adi.lm75
+.. automodule:: adi.ad7291
    :members:
    :undoc-members:
    :show-inheritance:
