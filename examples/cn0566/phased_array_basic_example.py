@@ -10,8 +10,6 @@ import time
 rpi_ip = "ip:phaser.local"  # IP address of the Raspberry Pi
 sdr_ip = "ip:pluto.local" # "192.168.2.1"  # IP address of the Transreceiver Block
 
-
-
 try:
     x = my_sdr.uri
     print("Pluto already connected")
