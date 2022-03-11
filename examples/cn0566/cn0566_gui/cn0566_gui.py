@@ -29,8 +29,7 @@ except:
     sys.exit(0)
 
 if os.name == 'nt': # Assume running on Windows
-    print("Running on Windows, connecting to phaser.local and pluto.local...")
-    rpi_ip = "ip:phaser.local"  # IP address of the remote Raspberry Pi
+    print("Running on Windows, connecting to phaser.local and pluto.local...")#    rpi_ip = "ip:phaser.local"  # IP address of the remote Raspberry Pi
     sdr_ip = "ip:pluto.local" # Pluto IP, with modified IP address or not
 elif os.name == 'posix':
     print("Running on Linux, assumgin I'm on the Pi itself...")
