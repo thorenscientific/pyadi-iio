@@ -29,7 +29,9 @@ except:
     sys.exit(0)
 
 if os.name == 'nt': # Assume running on Windows
-    print("Running on Windows, connecting to phaser.local and pluto.local...")#    rpi_ip = "ip:phaser.local"  # IP address of the remote Raspberry Pi
+    print("Running on Windows, connecting to phaser.local and pluto.local...")
+    rpi_ip = "ip:phaser.local"  # IP address of the remote Raspberry Pi
+    rpi_ip = "ip:169.254.225.48"
     sdr_ip = "ip:pluto.local" # Pluto IP, with modified IP address or not
 elif os.name == 'posix':
     print("Running on Linux, assumgin I'm on the Pi itself...")
@@ -57,14 +59,14 @@ class App:
         self.Rx_gain = config.Rx_gain
         self.Tx_gain = config.Tx_gain
         self.Averages = config.Averages
-        self.RxGain1 = config.RxGain1
-        self.RxGain2 = config.RxGain2
-        self.RxGain3 = config.RxGain3
-        self.RxGain4 = config.RxGain4
-        self.RxGain5 = config.RxGain5
-        self.RxGain6 = config.RxGain6
-        self.RxGain7 = config.RxGain7
-        self.RxGain8 = config.RxGain8
+        self.RxGain1 = 127 # config.RxGain1
+        self.RxGain2 = 127 #config.RxGain2
+        self.RxGain3 = 127 #config.RxGain3
+        self.RxGain4 = 127 #config.RxGain4
+        self.RxGain5 = 127 #config.RxGain5
+        self.RxGain6 = 127 #config.RxGain6
+        self.RxGain7 = 127 #config.RxGain7
+        self.RxGain8 = 127 #config.RxGain8
         self.Rx1_cal = config.Rx1_cal
         self.Rx2_cal = config.Rx2_cal
         self.Rx3_cal = config.Rx3_cal
@@ -827,7 +829,7 @@ class App:
         if self.SignalFreq != int(self.freq.get()*1e9):
             self.SignalFreq = self.freq.get()*1e9
             self.LO_freq = self.SignalFreq+self.Rx_freq
-            SDR_LO_init(self.LO_freq)
+            SDR_LO_init(rpi_ip, self.LO_freq)
         if self.Rx_gain != int(self.RxGain.get()):
             self.Rx_gain = int(self.RxGain.get())
             SDR_setRx(self.sdr, self.num_Rx, int(self.Rx_freq), self.Rx_gain)
@@ -941,14 +943,14 @@ class App:
         self.max_gain = []
         max_signal = -100000
         max_angle = -90
-        self.RxPhase1 = self.Rx1Phase_set.get()+self.Rx1_cal
-        self.RxPhase2 = self.Rx2Phase_set.get()+self.Rx2_cal
-        self.RxPhase3 = self.Rx3Phase_set.get()+self.Rx3_cal
-        self.RxPhase4 = self.Rx4Phase_set.get()+self.Rx4_cal
-        self.RxPhase5 = self.Rx5Phase_set.get()+self.Rx5_cal
-        self.RxPhase6 = self.Rx6Phase_set.get()+self.Rx6_cal
-        self.RxPhase7 = self.Rx7Phase_set.get()+self.Rx7_cal
-        self.RxPhase8 = self.Rx8Phase_set.get()+self.Rx8_cal
+        self.RxPhase1 = self.Rx1Phase_set.get()# +self.Rx1_cal # Originally these were cal values
+        self.RxPhase2 = self.Rx2Phase_set.get()# +self.Rx2_cal
+        self.RxPhase3 = self.Rx3Phase_set.get()# +self.Rx3_cal
+        self.RxPhase4 = self.Rx4Phase_set.get()# +self.Rx4_cal
+        self.RxPhase5 = self.Rx5Phase_set.get()# +self.Rx5_cal
+        self.RxPhase6 = self.Rx6Phase_set.get()# +self.Rx6_cal
+        self.RxPhase7 = self.Rx7Phase_set.get()# +self.Rx7_cal
+        self.RxPhase8 = self.Rx8Phase_set.get()# +self.Rx8_cal
         for PhDelta in PhaseValues:
             #if self.refresh.get()==1:
                     #time.sleep((self.update_time.get()/1000)/100)

@@ -61,10 +61,10 @@ class CN0566(adf4159, adar1000_array):
                  rx_dev=None,
                  chip_ids=["BEAM0", "BEAM1"],
                  device_map=[[1], [2]],
-                 element_map=[[1, 2, 3, 4], [5, 6, 7, 8]],
+                 element_map=[[1, 2, 3, 4, 5, 6, 7, 8]], # [[1, 2, 3, 4], [5, 6, 7, 8]],
                  device_element_map={
-                     1: [2, 1, 4, 3],
-                     2: [6, 5, 8, 7],
+                     1: [7, 8, 5, 6],          #i.e. channel2 of device1 (BEAM0), maps to element 8
+                     2: [3, 4, 1, 2]
                  }):
 
         print("attempting to open ADF4159, uri: ", str(uri))
@@ -88,8 +88,8 @@ class CN0566(adf4159, adar1000_array):
         self.c = 299792458  # speed of light in m/s
         self.element_spacing = 0.015  # element to element spacing of the antenna in meters
         self.res_bits = 1  # res_bits and bits are two different var. It can be variable, but it is hardset to 1 for now
-        self.pcal = [0 for i in range(0, (self.num_elements))]  # default phase cal value i.e 0
-        self.gcal = [0x7F for i in range(0, self.num_elements)]  # default gain cal value i.e 127
+        self.pcal = [0.0 for i in range(0, (self.num_elements))]  # default phase cal value i.e 0
+        self.gcal = [1.0 for i in range(0, self.num_elements)]  # default gain cal value i.e 127
         self.ph_deltas = [0 for i in range(0, (self.num_elements)-1)] # Phase delta between elements
         self.rx_dev = rx_dev # rx_device/sdr that rx and plots
         self.gain_cal = False  # gain/phase calibration status flag it goes True when performing calibration
@@ -215,7 +215,7 @@ class CN0566(adf4159, adar1000_array):
                 self.gcal = pickle.load(file1)  # Load gain cal values
         except:
             print("file not found, loading default (all gain at maximum)")
-            self.gcal = [127, 127, 127, 127, 127, 127, 127, 127] # .append(0x7F)
+            self.gcal = [1.0] * 8 # .append(0x7F)
 
     def load_phase_cal(self, filename='phase_cal_val.pkl'):
         """ Load phase calibrated value, if not calibrated set all channel phase correction to 0.
@@ -231,7 +231,7 @@ class CN0566(adf4159, adar1000_array):
             print("file not found, loading default (no phase shift)")
             self.pcal = [0, 0, 0, 0, 0, 0, 0, 0] # .append(0)  # if it fails load default value i.e. 0
 
-    def set_all_gain(self, value=127):
+    def set_all_gain(self, value=127, apply_cal = True):
         """ This will try to set gain of all the channels
             parameters:
                     value: type=int
@@ -253,7 +253,10 @@ class CN0566(adf4159, adar1000_array):
             i = 0  # i is index of channel of each device
             for channel in device.channels:
                 if self.device_mode == 'rx':
-                    channel.rx_gain = channel_gain_value[i]
+                    if apply_cal == True:
+                        channel.rx_gain = int(channel_gain_value[i] * self.gcal[i])
+                    else:
+                        channel.rx_gain = int(channel_gain_value[i])
                 elif self.device_mode == 'tx':
                     channel.tx_gain = channel_gain_value[i]
                 else:
@@ -264,7 +267,7 @@ class CN0566(adf4159, adar1000_array):
             elif self.device_mode == 'tx':
                 device.latch_tx_settings()  # writes 0x01 to reg 0x28
 
-    def set_chan_gain(self, chan_no: int, gain_val):
+    def set_chan_gain(self, chan_no: int, gain_val, apply_cal = True):
         """ Setl gain of the individua channel/s.
             parameters:
                     chan_no: type=int
@@ -278,8 +281,16 @@ class CN0566(adf4159, adar1000_array):
            if you want to set gain of channel at index 5 it is 6th channel or 2nd channel of 2nd device so 5//4 = 1
            i.e. index of 2nd device and (5 - 4*(5//4) = 1 i.e. index of channel"""
         if self.device_mode == 'rx':
-            list(self.devices.values())[chan_no // 4].channels[(chan_no - (4 * (chan_no // 4)))].rx_gain = gain_val
-            list(self.devices.values())[chan_no // 4].latch_rx_settings()
+            if apply_cal == True:
+                print("Cal = true, setting channel x to gain y, gcal value: ", chan_no, ", ", int(gain_val * self.gcal[chan_no]), ", ", self.gcal[chan_no])
+#                list(self.devices.values())[chan_no // 4].channels[(chan_no - (4 * (chan_no // 4)))].rx_gain = int(gain_val * self.gcal[chan_no])
+                self.elements.get(chan_no + 1).rx_gain = int(gain_val * self.gcal[chan_no])
+            else:
+                print("Cal = false, setting channel x to gain y: ", chan_no, ", ", int(gain_val))
+#                list(self.devices.values())[chan_no // 4].channels[(chan_no - (4 * (chan_no // 4)))].rx_gain = int(gain_val)
+                self.elements.get(chan_no + 1).rx_gain = int(gain_val)
+#            list(self.devices.values())[chan_no // 4].latch_rx_settings()
+            self.latch_rx_settings()
         elif self.device_mode == 'tx':
             list(self.devices.values())[chan_no // 4].channels[(chan_no - (4 * (chan_no // 4)))].tx_gain = gain_val
             list(self.devices.values())[chan_no // 4].latch_tx_settings()
@@ -287,7 +298,7 @@ class CN0566(adf4159, adar1000_array):
             raise ValueError("Configure the device first")
 
 
-    def set_chan_phase(self, chan_no: int, phase_val):
+    def set_chan_phase(self, chan_no: int, phase_val, apply_cal = True):
         """ Setl phase of the individua channel/s.
             parameters:
                     chan_no: type=int
@@ -301,8 +312,15 @@ class CN0566(adf4159, adar1000_array):
            if you want to set gain of channel at index 5 it is 6th channel or 2nd channel of 2nd device so 5//4 = 1
            i.e. index of 2nd device and (5 - 4*(5//4) = 1 i.e. index of channel"""
         if self.device_mode == 'rx':
-            list(self.devices.values())[chan_no // 4].channels[(chan_no - (4 * (chan_no // 4)))].rx_phase = phase_val
-            list(self.devices.values())[chan_no // 4].latch_rx_settings()
+            # list(self.devices.values())[chan_no // 4].channels[(chan_no - (4 * (chan_no // 4)))].rx_phase = phase_val
+            # list(self.devices.values())[chan_no // 4].latch_rx_settings()
+            if apply_cal == True:
+                self.elements.get(chan_no + 1).rx_phase = (phase_val + self.pcal[chan_no]) % 360
+            else:
+                self.elements.get(chan_no + 1).rx_phase = (phase_val) % 360
+            
+            self.latch_rx_settings()
+            
         elif self.device_mode == 'tx':
             list(self.devices.values())[chan_no // 4].channels[(chan_no - (4 * (chan_no // 4)))].rx_phase = phase_val
             list(self.devices.values())[chan_no // 4].latch_tx_settings()
@@ -324,25 +342,32 @@ class CN0566(adf4159, adar1000_array):
             list this creates a list of 4 items. Now write channel of each device, phase values acc to created list 
             values. This is the structural integrity mentioned above."""
 
-        j = 0  # j is index of device and device indicate the adar1000 on which operation is currently done
-        for device in list(self.devices.values()):  # device in dict of all adar1000 connected
-            channel_phase_value = []  # channel phase value to be written on ind channel
-            for ind in range(0, 4):  # ind is index of current channel of current device
-                channel_phase_value.append((((np.rint(Ph_Diff * ((j * 4) + ind) / self.phase_step_size)) *
-                                             self.phase_step_size) + self.pcal[((j * 4) + ind)]) % 360)
-            j += 1
-            i = 0  # i is index of channel of each device
-            for channel in device.channels:
-                # Set phase depending on the device mode
-                if self.device_mode == "rx":
-                    channel.rx_phase = channel_phase_value[
-                        i]  # writes to I and Q registers values according to Table 13-16 from datasheet.
-                i = i + 1
-            if self.device_mode == "rx":
-                device.latch_rx_settings()
-            else:
-                device.latch_tx_settings()
-            # print(channel_phase_value)
+        # j = 0  # j is index of device and device indicate the adar1000 on which operation is currently done
+        # for device in list(self.devices.values()):  # device in dict of all adar1000 connected
+        #     channel_phase_value = []  # channel phase value to be written on ind channel
+        #     for ind in range(0, 4):  # ind is index of current channel of current device
+        #         channel_phase_value.append((((np.rint(Ph_Diff * ((j * 4) + ind) / self.phase_step_size)) *
+        #                                      self.phase_step_size) + self.pcal[((j * 4) + ind)]) % 360)
+        #     j += 1
+        #     i = 0  # i is index of channel of each device
+        #     for channel in device.channels:
+        #         # Set phase depending on the device mode
+        #         if self.device_mode == "rx":
+        #             channel.rx_phase = channel_phase_value[
+        #                 i]  # writes to I and Q registers values according to Table 13-16 from datasheet.
+        #         i = i + 1
+        #     if self.device_mode == "rx":
+        #         device.latch_rx_settings()
+        #     else:
+        #         device.latch_tx_settings()
+        #     # print(channel_phase_value)
+
+        for ch in range (0, 8):
+            self.elements.get(ch + 1).rx_phase = (((np.rint(Ph_Diff * ch / self.phase_step_size)) *
+                                         self.phase_step_size) + self.pcal[ch]) % 360
+            
+        self.latch_rx_settings()
+
 
     def calculate_plot(self, gcal_element=0, cal_element=0):
         """ Calculate all the values required to do different plots. It method calls set_beam_phase_diff and
@@ -449,14 +474,14 @@ class CN0566(adf4159, adar1000_array):
             plt.figure(5)
             
         self.gain_cal = True  # Gain Calibration Flag
-        self.gcal = []  # Reset the initiated gcal array so that appending does not result in extra values
         gcalibrated_values = []  # Intermediate cal values list
         # gcal_element indicates current element/channel which is being calibrated
         for gcal_element in range(0, (self.num_elements)):
             if verbose == True:
                 print("Calibrating Element " + str(gcal_element))
 
-            gcal_val, spectrum = self.measure_element_gain(gcal_element)
+            gcal_val, spectrum = self.measure_element_gain(gcal_element, verbose = True)
+            print("Measured element gain: ", gcal_val)
             if verbose == True:
                 print("Element gain: " + str(gcal_val))
             gcalibrated_values.append(gcal_val)  # make a list of intermediate cal values
@@ -467,16 +492,18 @@ class CN0566(adf4159, adar1000_array):
 
         """ Minimum gain of intermediated cal val is set to Maximum value as we cannot go beyond max value and gain
             of all other channels are set accordingly"""
+        print("gcalibrated values: ", gcalibrated_values)
         for k in range(0, 8):
-            x = ((gcalibrated_values[k] * 127) / (min(gcalibrated_values)))
-            self.gcal.append(int(x))  # append final calibrated value to gcal list
+#            x = ((gcalibrated_values[k] * 127) / (min(gcalibrated_values)))
+            x = ((gcalibrated_values[k]) / (min(gcalibrated_values)))
+            self.gcal[k] = (x)  # append final calibrated value to gcal list
 
 #        self.save_gain_cal()  # save the gcal list
         self.gain_cal = False  # Reset the Gain calibration Flag once system gain is calibrated
         return self.gcal
         # print(self.gcal)
 
-    def measure_element_gain(self, cal=3, verbose = False): # Default to central element
+    def measure_element_gain(self, cal, verbose = False): # Default to central element
         """ Calculate all the values required to do different plots. It method calls set_beam_phase_diff and
             sets the Phases of all channel. All the math is done here.
             parameters:
@@ -488,8 +515,9 @@ class CN0566(adf4159, adar1000_array):
                             is currently taking place
         """
         self.set_all_gain(0) # Start with all gains set to zero
-        self.set_chan_gain(cal, 127) # Set element being measured to maximum
-
+        self.set_chan_gain(cal, 127, apply_cal = False) # Set element being measured to maximum
+        if verbose:
+            print("measuring element: ", cal)
         total_sum = 0
         win = np.blackman(self.rx_dev.rx_buffer_size)
         spectrum = np.zeros(self.rx_dev.rx_buffer_size - 2)
@@ -528,18 +556,18 @@ class CN0566(adf4159, adar1000_array):
             if verbose == True:
                 print("Calibrating Element " + str(cal_element))
             self.set_all_gain(0) # Reset all elements to zero
-            self.set_chan_gain(cal_element, self.gcal[cal_element]) #Set two adjacent elements to zero
-            self.set_chan_gain(cal_element + 1, self.gcal[cal_element + 1])
-            beam_cal = [0 for i in range(0, (self.num_elements))]  # set all gain to 0
-            # Only set th gain of current & it's adjacent element/channel to gain calibrated values
-            beam_cal[cal_element] = self.gcal[cal_element]
-            beam_cal[(cal_element + 1)] = self.gcal[(cal_element + 1)]
+            self.set_chan_gain(cal_element, 127) #Set two adjacent elements to zero
+            self.set_chan_gain(cal_element + 1, 127)
+            # beam_cal = [0 for i in range(0, (self.num_elements))]  # set all gain to 0
+            # # Only set th gain of current & it's adjacent element/channel to gain calibrated values
+            # beam_cal[cal_element] = self.gcal[cal_element]
+            # beam_cal[(cal_element + 1)] = self.gcal[(cal_element + 1)]
 
             
             PhaseValues, gain, beam_phase, max_gain = self.phase_cal_sweep(cal_element, cal_element + 1)
-            
+            colors = ['black', 'gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple']
             if verbose == True:
-                plt.plot(PhaseValues, gain)
+                plt.plot(PhaseValues, gain, color = colors[cal_element] )
                 plt.show()
             
             ph_delta = to_sup((180 - PhaseValues[gain.index(min(gain))]) % 360.0)
@@ -569,7 +597,7 @@ class CN0566(adf4159, adar1000_array):
                             is currently taking place
         """
 
-        self.set_chan_phase(ref, 0.0) # Reference element
+        self.set_chan_phase(ref, 0.0, apply_cal=False) # Reference element
 
         sweep_angle = 180  # This swweps from -70 deg to +70
         # These are all the phase deltas (i.e. phase difference between Rx1 and Rx2, then Rx2 and Rx3, etc.) we'll sweep
@@ -580,7 +608,7 @@ class CN0566(adf4159, adar1000_array):
         gain, beam_phase = [], [] # Create empty lists
         for phase in PhaseValues:  # These sweeps phase value from -180 to 180
             # set Phase of channels based on Calibration Flag status and calibration element
-            self.set_chan_phase(cal, phase)
+            self.set_chan_phase(cal, phase, apply_cal=False)
 
 
             total_sum, total_angle = 0, 0

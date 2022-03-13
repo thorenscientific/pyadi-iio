@@ -61,6 +61,7 @@ def ADAR_set_mode(beam, mode):
         
         
 def ADAR_set_Taper(array, Gain1, Gain2, Gain3, Gain4, Gain5, Gain6, Gain7, Gain8):
+    print("element 1 gcal, val: ", gcal[0], ", ", int(Gain1 * gcal[0]))
     array.elements.get(1).rx_gain=int(Gain1 * gcal[0])
     array.elements.get(1).rx_attenuator=not bool(Gain1)  #if Gainx=0, then also click in the 20dB attenuator (i.e. set rx_attenuator to True)
     array.elements.get(2).rx_gain=int(Gain2 * gcal[1])
@@ -101,10 +102,10 @@ def load_gain_cal(filename='gain_cal_val.pkl'):
     """
     try:
         with open(filename, 'rb') as file1:
-            return np.array(pickle.load(file1)) / 127.0  # Load gain cal values
+            return (pickle.load(file1))  # Load gain cal values
     except:
         print("file not found, loading default (all gain at maximum)")
-        return np.array([1.0] * 8) # .append(0x7F)
+        return ([1.0] * 8) # .append(0x7F)
 
 def load_phase_cal(filename='phase_cal_val.pkl'):
     """ Load phase calibrated value, if not calibrated set all channel phase correction to 0.
@@ -115,13 +116,21 @@ def load_phase_cal(filename='phase_cal_val.pkl'):
 
     try:
         with open(filename, 'rb') as file:
-            return np.array(pickle.load(file))  # Load gain cal values
+            return (pickle.load(file))  # Load gain cal values
     except:
         print("file not found, loading default (no phase shift)")
-        return np.array([0.0] * 8) # .append(0)  # if it fails load default value i.e. 0
+        return ([0.0] * 8) # .append(0)  # if it fails load default value i.e. 0
 
 gcal = load_gain_cal()
 pcal = load_phase_cal()
+
+# print("initial pcal: ", pcal)
+# pcal = pcal[4:]+pcal[:4]
+#gcal = gcal[4:]+gcal[:4]
+# pcal.reverse()
+
+
+
 
 print("Gain cal: ", gcal)
 print("Phase cal: ", pcal)

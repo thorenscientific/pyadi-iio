@@ -17,14 +17,14 @@ RxGain5 = 127
 RxGain6 = 127
 RxGain7 = 127
 RxGain8 = 127
-Rx1_cal = 47.8125  # you can put phase cal values here (to compensate for phase mismatches in the lines, etc.)
-Rx2_cal = 11.25
-Rx3_cal = -11.25
-Rx4_cal = 0
-Rx5_cal = -14.0625
-Rx6_cal = -19.6875
-Rx7_cal = 30.9375
-Rx8_cal = 22.5
+Rx1_cal = 0.0 # 47.8125  # you can put phase cal values here (to compensate for phase mismatches in the lines, etc.)
+Rx2_cal = 0.0 # 11.25
+Rx3_cal = 0.0 # -11.25
+Rx4_cal = 0.0 # 0
+Rx5_cal = 0.0 # -14.0625
+Rx6_cal = 0.0 # -19.6875
+Rx7_cal = 0.0 # 30.9375
+Rx8_cal = 0.0 # 22.5
 refresh_time = 100 # refresh time in ms.  Auto beam sweep will update at this rate.  Too fast makes it hard to adjust the GUI values when sweeping is active
 # The ADAR1000 address is set by the address pins on the ADAR1000.  This is set by P10 on the eval board.
 # ADDR 00 (BEAM0, 0x00) is set by leaving all jumpers off of P10

@@ -52,8 +52,11 @@ my_sdr.gain_control_mode_chan0 = 'manual'
 my_sdr.gain_control_mode_chan1 = 'manual'
 my_sdr.rx_hardwaregain_chan0 = 20
 my_sdr.rx_hardwaregain_chan1 = 20
-my_sdr.rx_lo = 2000000000  # 4495000000  # Recieve Freq
-my_sdr.tx_lo = 2000000000
+
+
+
+my_sdr.rx_lo = int(2.2e9)  # 4495000000  # Recieve Freq
+my_sdr.tx_lo = int(2.2e9)
 
 my_sdr.filter="LTE20_MHz.ftr"
 rx_buffer_size = int(4 * 256)
@@ -77,12 +80,22 @@ my_sdr.dds_single_tone(int(2e6), 0.9, 1) # sdr.dds_single_tone(tone_freq_hz, ton
 # By default device_mode is "rx"
 my_cn0566.configure(device_mode="rx")  # Configure adar in mentioned mode and also sets gain of all channel to 127
 
-# HB100
-# my_cn0566.frequency = (10492000000 + 2000000000) // 4 #6247500000//2
-# Onboard source w/ external Vivaldi
-my_cn0566.frequency = (10600000000 + 2000000000) // 4
+# HB100 measured frequency - 10492000000
 
-my_cn0566.SignalFreq = 10600000000 # Make this automatic in the future.
+
+# my_cn0566.SignalFreq = 10600000000 # Make this automatic in the future.
+my_cn0566.SignalFreq = 10.497e9
+
+
+# my_cn0566.frequency = (10492000000 + 2000000000) // 4 #6247500000//2
+
+
+
+# Onboard source w/ external Vivaldi
+my_cn0566.frequency = (int(my_cn0566.SignalFreq) + my_sdr.rx_lo) // 4
+
+
+
 
 my_cn0566.freq_dev_step = 5690
 my_cn0566.freq_dev_range = 0
@@ -90,6 +103,11 @@ my_cn0566.freq_dev_time = 0
 my_cn0566.powerdown = 0
 my_cn0566.ramp_mode = "disabled"
 
+
+""" If you want to use previously calibrated values load_gain and load_phase values by passing path of previously
+    stored values. If this is not done system will be working as uncalibrated system."""
+my_cn0566.load_gain_cal('gain_cal_val.pkl')
+my_cn0566.load_phase_cal('phase_cal_val.pkl')
 
 """ This can be useful in Array size vs beam width experiment or beamtappering experiment. 
     Set the gain of outer channels to 0 and beam width will increase and so on."""
@@ -103,10 +121,7 @@ gain_list = [127, 127, 127, 127, 127, 127, 127, 127]
 for i in range(0, len(gain_list)):
     my_cn0566.set_chan_gain(i, gain_list[i])
 
-""" If you want to use previously calibrated values load_gain and load_phase values by passing path of previously
-    stored values. If this is not done system will be working as uncalibrated system."""
-my_cn0566.load_gain_cal('gain_cal_val.pkl')
-my_cn0566.load_phase_cal('phase_cal_val.pkl')
+
 
 """ Averages decide number of time samples are taken to plot and/or calibrate system. By default it is 1."""
 my_cn0566.Averages = 8
@@ -148,7 +163,9 @@ for i in range(0, 8):
     my_cn0566.set_chan_phase(i, 0.0)
 
 #my_cn0566.phase_step_size = 2.8125
-while True:
+
+do_plot = True
+while do_plot == True:
     start=time.time()
     my_cn0566.set_beam_phase_diff(0.0)
     time.sleep(0.25)
