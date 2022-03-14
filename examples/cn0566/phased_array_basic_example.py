@@ -1,20 +1,30 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from scipy import signal
+import sys
 import time
 """ This is the CN0566 directory and files created inside it. For now sdr pll and beamformer class are inside 
     3 different python files and CN0566 directory has it's own __init__.py file. Later merge them to single or change
     according to pyadi requirements."""
 
-# Instantiate all the Devices
-rpi_ip = "ip:phaser.local"  # IP address of the Raspberry Pi
-sdr_ip = "ip:pluto.local" # "192.168.2.1"  # IP address of the Transreceiver Block
+if os.name == 'nt': # Assume running on Windows
+    print("Running on Windows, connecting to phaser.local and pluto.local...")
+    rpi_ip = "ip:phaser.local"  # IP address of the remote Raspberry Pi
+#     rpi_ip = "ip:169.254.225.48" # Hard code an IP here
+    sdr_ip = "ip:pluto.local" # Pluto IP, with modified IP address or not
+elif os.name == 'posix':
+    print("Running on Linux, assuming I'm on the Pi itself...")
+    rpi_ip = "ip:localhost"  # Assume running locally on Raspberry Pi
+    sdr_ip = "ip:192.168.2.1"  # Historical - assume default Pluto IP
+else:
+    print("Can't detect OS")
 
 try:
     x = my_sdr.uri
     print("Pluto already connected")
 except NameError:
-    print("Pluto not connected...")
+    print("Pluto not connected, connecting...")
     from adi import ad9361
     my_sdr = ad9361(uri=sdr_ip)
 
@@ -24,7 +34,7 @@ try:
     x = my_cn0566.uri
     print("cn0566 already connected")
 except NameError:
-    print("cn0566 not open...")
+    print("cn0566 not connected, connecting...")
     from adi.cn0566 import CN0566
     my_cn0566 = CN0566(uri=rpi_ip, rx_dev=my_sdr)
     
@@ -53,8 +63,6 @@ my_sdr.gain_control_mode_chan1 = 'manual'
 my_sdr.rx_hardwaregain_chan0 = 20
 my_sdr.rx_hardwaregain_chan1 = 20
 
-
-
 my_sdr.rx_lo = int(2.2e9)  # 4495000000  # Recieve Freq
 my_sdr.tx_lo = int(2.2e9)
 
@@ -82,30 +90,23 @@ my_cn0566.configure(device_mode="rx")  # Configure adar in mentioned mode and al
 
 # HB100 measured frequency - 10492000000
 
-
 # my_cn0566.SignalFreq = 10600000000 # Make this automatic in the future.
 my_cn0566.SignalFreq = 10.497e9
 
-
 # my_cn0566.frequency = (10492000000 + 2000000000) // 4 #6247500000//2
 
-
-
 # Onboard source w/ external Vivaldi
-my_cn0566.frequency = (int(my_cn0566.SignalFreq) + my_sdr.rx_lo) // 4
-
-
-
-
+my_cn0566.frequency = (int(my_cn0566.SignalFreq) + my_sdr.rx_lo) // 4 # PLL feedback via /4 VCO output
 my_cn0566.freq_dev_step = 5690
 my_cn0566.freq_dev_range = 0
 my_cn0566.freq_dev_time = 0
 my_cn0566.powerdown = 0
 my_cn0566.ramp_mode = "disabled"
 
-
 """ If you want to use previously calibrated values load_gain and load_phase values by passing path of previously
-    stored values. If this is not done system will be working as uncalibrated system."""
+    stored values. If this is not done system will be working as uncalibrated system.
+    These will fail gracefully and default to no calibration if files not present."""
+
 my_cn0566.load_gain_cal('gain_cal_val.pkl')
 my_cn0566.load_phase_cal('phase_cal_val.pkl')
 
@@ -114,14 +115,13 @@ my_cn0566.load_phase_cal('phase_cal_val.pkl')
 #my_beamformer.set_chan_gain(3, 120)  # set gain of Individual channel
 #my_beamformer.set_all_gain(120)  # Set all gain to mentioned value, if not, set to 127 i.e. max gain
 
-""" To set gain of all channels with different values."""
+""" To set gain of all channels with different values.
+    Here's where you would apply a window / taper function,
+    but we're starting with rectangular / SINC1."""
 
-#gain_list = [127, 125, 122, 125, 119, 119, 121, 121]
 gain_list = [127, 127, 127, 127, 127, 127, 127, 127]
 for i in range(0, len(gain_list)):
-    my_cn0566.set_chan_gain(i, gain_list[i])
-
-
+    my_cn0566.set_chan_gain(i, gain_list[i], apply_cal=True)
 
 """ Averages decide number of time samples are taken to plot and/or calibrate system. By default it is 1."""
 my_cn0566.Averages = 8
@@ -137,82 +137,75 @@ my_cn0566.Averages = 8
 """ This can be used to change the angle of center lobe i.e if we want to concentrate main lobe/beam at 45 degress"""
 # my_beamformer.set_beam_angle(45)
 
-#my_cn0566.gcal = [127, 127, 127, 127, 127, 127, 127, 127]
-#my_cn0566.gcal = [127, 121, 117, 119, 111, 115, 119, 119]
 
+# Really basic options - "plot" to plot continuously, "cal" to calibrate both gain and phase.
+func = sys.argv[1] if len(sys.argv) >= 2 else "plot"
 
-#my_cn0566.gcal = [100, 100, 100, 100, 100, 100, 100, 100]
-#my_cn0566.gcal = [127, 126, 126, 126, 87, 89, 89, 92] # Cal values after some messing around w/ hardware
+if func == "cal":
+    input("Calibrating gain and phase - place antenna at mechanical boresight in front\
+          of the aryay, then press enter...")
+    print("Calibrating Gain, verbosely, then saving cal file...")
+    my_cn0566.gain_calibration(verbose = True)   # Start Gain Calibration
+    print("Calibrating Phase, verbosely, then saving cal file...")
+    my_cn0566.phase_calibration(verbose = True)  # Start Phase Calibration
+    print("Done calibration")
 
-#my_cn0566.gcal = [100, 100, 100, 100, 0, 0, 0, 0] # This half looks okay...
-#my_cn0566.gcal = [0, 0, 0, 100, 100, 0, 0, 0]
-#my_cn0566.gcal = [0, 100, 100, 0, 0, 00, 00, 00] # This half looks a little off...
+if func == "plot":
+    do_plot = True
+else:
+    do_plot = False
 
-# for i in range(0, len(my_cn0566.gcal)):
-#     my_cn0566.set_chan_gain(i, my_cn0566.gcal[i])
-
-# asn = 0.0
-# my_cn0566.pcal = [0, asn, 2.0*asn, 3.0*asn, 4.0*asn, 5.0*asn, 6.0*asn, 7.0*asn]
-
-#my_cn0566.pcal =  [0, -25.3125, -61.875, -101.25, -137.8125, -146.25, -132.1875, -120.9375]
-
-#my_cn0566.pcal = [0, -19.6875, 126.5625, 95.625, 56.25, 47.8125, 70.3125, 84.375]
-    
-for i in range(0, 8):
-    #my_cn0566.set_chan_phase(i, my_cn0566.pcal[i])
-    my_cn0566.set_chan_phase(i, 0.0)
-
-#my_cn0566.phase_step_size = 2.8125
-
-do_plot = True
 while do_plot == True:
-    start=time.time()
-    my_cn0566.set_beam_phase_diff(0.0)
-    time.sleep(0.25)
-    data = my_sdr.rx()
-    data = my_sdr.rx()
-    ch0 = data[0]
-    ch1 = data[1]
-    f, Pxx_den0 = signal.periodogram(ch0[1:-1], 30000000, 'blackman', scaling='spectrum')
-    f, Pxx_den1 = signal.periodogram(ch1[1:-1], 30000000, 'blackman', scaling='spectrum')
+    try:
+        start=time.time()
+        my_cn0566.set_beam_phase_diff(0.0)
+        time.sleep(0.25)
+        data = my_sdr.rx()
+        data = my_sdr.rx()
+        ch0 = data[0]
+        ch1 = data[1]
+        f, Pxx_den0 = signal.periodogram(ch0[1:-1], 30000000, 'blackman', scaling='spectrum')
+        f, Pxx_den1 = signal.periodogram(ch1[1:-1], 30000000, 'blackman', scaling='spectrum')
+        
+        plt.figure(1)
+        plt.clf()
+        plt.plot(np.real(ch0), color='red')
+        plt.plot(np.imag(ch0), color='blue')
+        plt.plot(np.real(ch1), color='green')
+        plt.plot(np.imag(ch1), color='black')
+        np.real
+        plt.xlabel("data point")
+        plt.ylabel("output code")
+        plt.draw()
+        
+        plt.figure(2)
+        plt.clf()
+        plt.semilogy(f, Pxx_den0)
+        plt.semilogy(f, Pxx_den1)
+        plt.ylim([1e-5, 1e6])
+        plt.xlabel("frequency [Hz]")
+        plt.ylabel("PSD [V**2/Hz]")
+        plt.draw()
+        
+        """ Plot the output based on experiment that you are performing"""
+        print("Plotting...")
+        
     
-    plt.figure(1)
-    plt.clf()
-    plt.plot(np.real(ch0), color='red')
-    plt.plot(np.imag(ch0), color='blue')
-    plt.plot(np.real(ch1), color='green')
-    plt.plot(np.imag(ch1), color='black')
-    np.real
-    plt.xlabel("data point")
-    plt.ylabel("output code")
-    plt.draw()
-    
-    plt.figure(2)
-    plt.clf()
-    plt.semilogy(f, Pxx_den0)
-    plt.semilogy(f, Pxx_den1)
-    plt.ylim([1e-5, 1e6])
-    plt.xlabel("frequency [Hz]")
-    plt.ylabel("PSD [V**2/Hz]")
-    plt.draw()
-    
-    """ Plot the output based on experiment that you are performing"""
-    print("Plotting...")
-    
-    
-    
-    plt.figure(3)
-    plt.ion()
-#    plt.show()
-    gain, angle, delta, diff_error, beam_phase, xf, max_gain, PhaseValues = my_cn0566.calculate_plot()
-    print("Sweeping took this many seconds: " + str(time.time()-start))
-#    gain,  = my_cn0566.plot(plot_type="monopulse")
-    plt.clf()
-    plt.scatter(angle, gain, s=10)
-    plt.scatter(angle, delta, s=10)
-    plt.show()
-    
-    
-    plt.pause(0.05)
-    time.sleep(0.05)
-    print("Total took this many seconds: " + str(time.time()-start))
+        plt.figure(3)
+        plt.ion()
+    #    plt.show()
+        gain, angle, delta, diff_error, beam_phase, xf, max_gain, PhaseValues = my_cn0566.calculate_plot()
+        print("Sweeping took this many seconds: " + str(time.time()-start))
+    #    gain,  = my_cn0566.plot(plot_type="monopulse")
+        plt.clf()
+        plt.scatter(angle, gain, s=10)
+        plt.scatter(angle, delta, s=10)
+        plt.show()
+        
+        
+        plt.pause(0.05)
+        time.sleep(0.05)
+        print("Total took this many seconds: " + str(time.time()-start))
+    except KeyboardInterrupt:
+        do_plot = False
+        print("Exiting Loop")
