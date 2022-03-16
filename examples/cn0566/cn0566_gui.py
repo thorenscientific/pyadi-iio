@@ -91,6 +91,8 @@ class App:
         self.Rx_gain = config.Rx_gain
         self.Tx_gain = config.Tx_gain
         self.Averages = config.Averages
+# MWT: Do we need to pull defaults from the config file? These will be overwritten
+# by sliders, correct?
         self.RxGain1 = 127 # config.RxGain1
         self.RxGain2 = 127 #config.RxGain2
         self.RxGain3 = 127 #config.RxGain3
@@ -846,6 +848,7 @@ class App:
         g6 = self.Rx6Gain_set.get()
         g7 = self.Rx7Gain_set.get()
         g8 = self.Rx8Gain_set.get()
+# MWT: use np.array_equal function to detect any differences.
         if self.RxGain1 != g1 or self.RxGain2 != g2 or self.RxGain3 != g3 or self.RxGain4 != g4 or self.RxGain5 != g5 or self.RxGain6 != g6 or self.RxGain7 != g7 or self.RxGain8 != g8:
             self.RxGain1 = g1
             self.RxGain2 = g2
@@ -975,7 +978,8 @@ class App:
         self.max_gain = []
         max_signal = -100000
         max_angle = -90
-        self.RxPhase1 = self.Rx1Phase_set.get()# +self.Rx1_cal # Originally these were cal values
+# MWT: Originally phase cal values were added here. Now part of ADAR_set_Phase function.
+        self.RxPhase1 = self.Rx1Phase_set.get()# +self.Rx1_cal
         self.RxPhase2 = self.Rx2Phase_set.get()# +self.Rx2_cal
         self.RxPhase3 = self.Rx3Phase_set.get()# +self.Rx3_cal
         self.RxPhase4 = self.Rx4Phase_set.get()# +self.Rx4_cal
@@ -1230,8 +1234,10 @@ https://coderslegacy.com/python/problem-solving/improve-tkinter-resolution/
 root = Tk()
 root.title("Phased Array Beamforming")
 root.geometry("1600x800+100+20")
-root.call('tk', 'scaling', 1.50)
-root.resizable(False, False)   # the GUI is setup to be resizeable--and it all works great.  EXCEPT when we do the blitting of the graphs ( to speed up redraw time).  I can't figure that out.  So, for now, I just made it un-resizeable...
+root.call('tk', 'scaling', 1.50) # MWT: This seemed to fix scaling issues in Windows.
+                                 # Verify it doesn't mess anything up on the Pi, detect os if so.
+root.resizable(False, False)     # the GUI is setup to be resizeable--and it all works great.
+                                 # EXCEPT when we do the blitting of the graphs ( to speed up redraw time).  I can't figure that out.  So, for now, I just made it un-resizeable...
 root.minsize(700,600)
 app=App(root)
 root.mainloop()

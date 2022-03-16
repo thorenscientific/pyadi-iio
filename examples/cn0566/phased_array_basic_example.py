@@ -111,7 +111,7 @@ my_sdr.rx_hardwaregain_chan1 = 20
 my_sdr.rx_lo = int(2.2e9)  # 4495000000  # Recieve Freq
 my_sdr.tx_lo = int(2.2e9)
 
-my_sdr.filter="LTE20_MHz.ftr"
+my_sdr.filter="LTE20_MHz.ftr"  # MWT: Using this for now, may not be necessary.
 rx_buffer_size = int(4 * 256)
 my_sdr.rx_buffer_size = rx_buffer_size
 

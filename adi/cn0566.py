@@ -33,6 +33,7 @@
 
 from adi.adar1000 import adar1000_array
 from adi.adf4159 import adf4159
+from adi.ad7291 import ad7291
 import adi
 import numpy as np
 import pickle
@@ -56,6 +57,7 @@ class CN0566(adf4159, adar1000_array):
         calibration, set_beam_phase_diff, etc.
         gpios (as one-bit-adc-dac) are instantiated internally.
         """
+# MWT: Still up for debate - inheret, or nest? Nesting may actually be easier to understand.
     def __init__(self,
                  uri=None,
                  rx_dev=None,
@@ -78,6 +80,9 @@ class CN0566(adf4159, adar1000_array):
                                 element_map,
                                 device_element_map)
 
+        print("attempting to open AD7291 voltage/temperature monitor...")
+        self.monitor = ad7291(uri)
+
         """ Initialize all the class variables for the project. """
         self.num_elements = 8 # eq. to 4 * len(list(self.devices.values()))
         self.device_mode = "rx" # Default to RX.
@@ -94,7 +99,16 @@ class CN0566(adf4159, adar1000_array):
         self.rx_dev = rx_dev # rx_device/sdr that rx and plots
         self.gain_cal = False  # gain/phase calibration status flag it goes True when performing calibration
         self.phase_cal = False
-
+        # Scaling factors for voltage AD7291 monitor
+        self.v0_vdd1v8_scale = 1.0 + (10.0/10.0)
+        self.v1_vdd3v0_scale = 1.0 + (10.0/10.0)
+        self.v2_vdd3v3_scale = 1.0 + (10.0/10.0)
+        self.v3_vdd4v5_scale = 1.0 + (30.1/10.0)
+        self.v4_vdd_amp_scale = 1.0 + (69.8/10.0)
+        self.v5_vinput_scale = 1.0 + (30.1/10.0)
+        self.v6_imon_scale = (10.0) # double check scaling, this is in mA
+        self.v7_vtune_scale = 1.0 + (69.8/10.0)
+        
         """" GPIO pins implemented as one-bit-adc-dac """
         print("attempting to open gpios , uri: ", str(uri))
         sleep(0.5)
@@ -113,6 +127,40 @@ class CN0566(adf4159, adar1000_array):
         self.gpios.gpio_tx_sw = 0 # Direct control of TX switch when div=[000]. 0 = J1, 1 = J2
         # Read input
         muxout = self.gpios.gpio_muxout # PLL MUXOUT, would be nice to assign to PLL lock...
+
+    def read_monitor(self, verbose = False):
+        """ Read all voltage / temperature monitor channels. 
+            parameters:
+                    verbose: type=bool
+                              Print each channel's information if true.
+            returns:
+                An array of all readings in SI units (deg. C, Volts)
+        """
+        board_temperature = self.monitor.channel[0].raw * self.monitor.channel[0].scale / 1000.0 # convert from millidegrees
+        v0_vdd1v8 = self.monitor.channel[1].raw * self.monitor.channel[1].scale * self.v0_vdd1v8_scale / 1000.0
+        v1_vdd3v0 = self.monitor.channel[2].raw * self.monitor.channel[2].scale * self.v1_vdd3v0_scale / 1000.0
+        v2_vdd3v3 = self.monitor.channel[3].raw * self.monitor.channel[3].scale * self.v2_vdd3v3_scale / 1000.0
+        v3_vdd4v5 = self.monitor.channel[4].raw * self.monitor.channel[4].scale * self.v3_vdd4v5_scale / 1000.0
+        v4_vdd_amp = self.monitor.channel[5].raw * self.monitor.channel[5].scale * self.v4_vdd_amp_scale / 1000.0
+        v5_vinput = self.monitor.channel[6].raw * self.monitor.channel[6].scale * self.v5_vinput_scale / 1000.0
+        v6_imon = self.monitor.channel[7].raw * self.monitor.channel[7].scale * self.v6_imon_scale / 1000.0
+        v7_vtune = self.monitor.channel[8].raw * self.monitor.channel[8].scale * self.v7_vtune_scale / 1000.0
+        if(verbose == True):
+            print("Board temperature: ", board_temperature)
+            print("1.8V supply: ", v0_vdd1v8)
+            print("3.0V supply: ", v1_vdd3v0)
+            print("3.3V supply: ", v2_vdd3v3)
+            print("4.5V supply: ", v3_vdd4v5)
+            print("Vtune amp supply: ", v4_vdd_amp)
+            print("USB C input supply: ", v5_vinput)
+            print("Board current: ", v6_imon)
+            print("VTune: ", v7_vtune)
+        return[board_temperature, v0_vdd1v8, v1_vdd3v0, v2_vdd3v3, v4_vdd_amp,
+               v5_vinput, v6_imon, v7_vtune]
+        
+        
+        
+
 
     def configure(self, device_mode="rx"):
         """ Configure the device/beamformer properties like RAM bypass, Tr source etc.
@@ -464,7 +512,7 @@ class CN0566(adf4159, adar1000_array):
             return gain, angle, delta, diff_error, beam_phase, xf, max_gain, PhaseValues
 
     def gain_calibration(self, verbose = False):
-        """ Perfome the Gain Calibration routine."""
+        """ Perform the Gain Calibration routine."""
 
         """Set the gain calibration flag and create an empty gcal list. Looping through all the possibility i.e. setting
             gain of one of the channel to max and all other to 0 create a zero-list where number of 0's depend on total
@@ -488,7 +536,9 @@ class CN0566(adf4159, adar1000_array):
 
             if verbose == True:
                 plt.plot(spectrum)
-                plt.show()
+        if verbose == True:
+            plt.show()
+            print("If running from the command line, you may need to close the plot to continue.")
 
         """ Minimum gain of intermediated cal val is set to Maximum value as we cannot go beyond max value and gain
             of all other channels are set accordingly"""
@@ -568,8 +618,7 @@ class CN0566(adf4159, adar1000_array):
             colors = ['black', 'gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple']
             if verbose == True:
                 plt.plot(PhaseValues, gain, color = colors[cal_element] )
-                plt.show()
-            
+
             ph_delta = to_sup((180 - PhaseValues[gain.index(min(gain))]) % 360.0)
             self.ph_deltas[cal_element] = ph_delta
 
@@ -581,7 +630,9 @@ class CN0566(adf4159, adar1000_array):
 #             self.pcal[k] = self.pcal[k] + self.pcal[k - 1]
 #         self.pcal.insert(0, 0)  # Calibration of 1st channel is 0 w.r.t itself so add 0 in start on phase cal list
 # #        self.save_phase_cal()  # save the pcal list
-
+        if verbose == True:
+            plt.show()
+            print("If running from the command line, you may need to close the plot to continue.")
         return self.pcal
     
     

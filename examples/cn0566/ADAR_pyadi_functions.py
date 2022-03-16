@@ -2,6 +2,9 @@
 
 import numpy as np
 
+# MWT: probably better to pass verbosity to each function
+verbose = True
+
 def ADAR_init(beam):
     # Initialize the ADAR1000
     beam.reset()                       #Performs a soft reset of the device (writes 0x81 to reg 0x00)
@@ -59,7 +62,7 @@ def ADAR_set_mode(beam, mode):
             channel.tx_enable = True
             channel.pa_bias_on = -2
         
-        
+# MWT: Consider combining Gainx into an array.
 def ADAR_set_Taper(array, Gain1, Gain2, Gain3, Gain4, Gain5, Gain6, Gain7, Gain8):
     print("element 1 gcal, val: ", gcal[0], ", ", int(Gain1 * gcal[0]))
     array.elements.get(1).rx_gain=int(Gain1 * gcal[0])
@@ -80,6 +83,8 @@ def ADAR_set_Taper(array, Gain1, Gain2, Gain3, Gain4, Gain5, Gain6, Gain7, Gain8
     array.elements.get(8).rx_attenuator=not bool(Gain8)
     array.latch_rx_settings()
 
+
+# MWT: Consider combining phasex into an array.
 def ADAR_set_Phase(array, PhDelta, phase_step_size, phase1, phase2, phase3, phase4, phase5, phase6, phase7, phase8):
     step_size = phase_step_size  #2.8125
     array.elements.get(1).rx_phase = ((np.rint(PhDelta*0/step_size)*step_size) + phase1 + pcal[0]) % 360
@@ -124,13 +129,6 @@ def load_phase_cal(filename='phase_cal_val.pkl'):
 gcal = load_gain_cal()
 pcal = load_phase_cal()
 
-# print("initial pcal: ", pcal)
-# pcal = pcal[4:]+pcal[:4]
-#gcal = gcal[4:]+gcal[:4]
-# pcal.reverse()
-
-
-
-
-print("Gain cal: ", gcal)
-print("Phase cal: ", pcal)
+if verbose = True:
+    print("Gain cal: ", gcal)
+    print("Phase cal: ", pcal)
