@@ -81,6 +81,8 @@ from adi.ada4961 import ada4961
 
 from adi.cn0532 import cn0532
 
+from adi.cn0575 import CN0575
+
 from adi.daq2 import DAQ2
 
 from adi.daq3 import DAQ3
@@ -150,6 +152,8 @@ from adi.adf4159 import adf4159
 from adi.tdd import tdd
 
 from adi.lm75 import lm75
+
+from adi.cpu_thermal import cpu_thermal
 
 from adi.ad4630 import ad4630
 

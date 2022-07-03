@@ -1,4 +1,4 @@
-# Copyright (C) 2022 Analog Devices, Inc.
+# Copyright (C) 2021 Analog Devices, Inc.
 #
 # All rights reserved.
 #
@@ -31,66 +31,23 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from adi.attribute import attribute
-from adi.context_manager import context_manager
+import sys
 
+import adi
 
-class lm75(context_manager, attribute):
-    """ LM75 Temperature Sensor """
+# Optionally passs URI as command line argument,
+# else use default context manager search
+my_uri = sys.argv[1] if len(sys.argv) >= 2 else None
+print("uri: " + str(my_uri))
 
-    _device_name = ""
+# Set up CPU Thermal device
+my_cpu_temp_sensr = adi.cpu_thermal(uri=my_uri)
 
-    def __init__(self, uri="", device_index=0):
+print("\nChecking CPU temperature ...")
+print("Temperature raw: " + str(my_cpu_temp_sensr.input))
+print(
+    "Temperature in deg. Celsius: "
+    + str(my_cpu_temp_sensr.to_degrees(my_cpu_temp_sensr.input))
+)
 
-        context_manager.__init__(self, uri, self._device_name)
-
-        compatible_parts = ["lm75", "adt75"]
-
-        self._ctrl = None
-        index = 0
-        # Select the device_index-th device from the lm75 family as working device.
-        for device in self._ctx.devices:
-            if device.name in compatible_parts:
-                if index == device_index:
-                    self._ctrl = device
-                    break
-                else:
-                    index += 1
-
-    @property
-    def update_interval(self):
-        """Update Interval"""
-        return self._get_iio_dev_attr("update_interval")
-
-    def to_degrees(self, value):
-        """Convert raw to degrees Celsius"""
-        return value / 1000.0
-
-    def to_millidegrees(self, value):
-        """Convert degrees Celsius to millidegrees"""
-        return int(value * 1000.0)
-
-    @property
-    def input(self):
-        """LM75 temperature input value"""
-        return self._get_iio_attr("temp1", "input", False)
-
-    @property
-    def max(self):
-        """LM75 temperature max value"""
-        return self._get_iio_attr("temp1", "max", False)
-
-    @max.setter
-    def max(self, value):
-        """LM75 temperature max value"""
-        return self._set_iio_attr("temp1", "max", False, value)
-
-    @property
-    def max_hyst(self):
-        """LM75 max_hyst value"""
-        return self._get_iio_attr("temp1", "max_hyst", False)
-
-    @max_hyst.setter
-    def max_hyst(self, value):
-        """LM75 max_hyst value"""
-        return self._set_iio_attr("temp1", "max_hyst", False, value)
+del my_cpu_temp_sensr

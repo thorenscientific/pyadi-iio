@@ -31,66 +31,33 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from adi.attribute import attribute
-from adi.context_manager import context_manager
+import sys
+from time import sleep
 
+import adi
 
-class lm75(context_manager, attribute):
-    """ LM75 Temperature Sensor """
+# Optionally passs URI as command line argument,
+# else use default context manager search
+my_uri = sys.argv[1] if len(sys.argv) >= 2 else None
+print("uri: " + str(my_uri))
 
-    _device_name = ""
+# Connect to CN0575
+my_cn0575 = adi.CN0575(uri=my_uri)
 
-    def __init__(self, uri="", device_index=0):
+print("\nReading onboard ADT75 ...")
+print("Temperature: " + str(my_cn0575.onboard_adt75))
 
-        context_manager.__init__(self, uri, self._device_name)
+print("Raspberry Pi CPU temp sensor: " + str(my_cn0575.rpi_cpu_temp))
 
-        compatible_parts = ["lm75", "adt75"]
+print("Blinking LED and reading button:")
+for i in range(1, 10):
+    my_cn0575.led = 1
+    sleep(0.5)
+    my_cn0575.led = 0
+    sleep(0.5)
+    if my_cn0575.button == 1:
+        print("Button Pressed")
+    else:
+        print("Button NOT Pressed")
 
-        self._ctrl = None
-        index = 0
-        # Select the device_index-th device from the lm75 family as working device.
-        for device in self._ctx.devices:
-            if device.name in compatible_parts:
-                if index == device_index:
-                    self._ctrl = device
-                    break
-                else:
-                    index += 1
-
-    @property
-    def update_interval(self):
-        """Update Interval"""
-        return self._get_iio_dev_attr("update_interval")
-
-    def to_degrees(self, value):
-        """Convert raw to degrees Celsius"""
-        return value / 1000.0
-
-    def to_millidegrees(self, value):
-        """Convert degrees Celsius to millidegrees"""
-        return int(value * 1000.0)
-
-    @property
-    def input(self):
-        """LM75 temperature input value"""
-        return self._get_iio_attr("temp1", "input", False)
-
-    @property
-    def max(self):
-        """LM75 temperature max value"""
-        return self._get_iio_attr("temp1", "max", False)
-
-    @max.setter
-    def max(self, value):
-        """LM75 temperature max value"""
-        return self._set_iio_attr("temp1", "max", False, value)
-
-    @property
-    def max_hyst(self):
-        """LM75 max_hyst value"""
-        return self._get_iio_attr("temp1", "max_hyst", False)
-
-    @max_hyst.setter
-    def max_hyst(self, value):
-        """LM75 max_hyst value"""
-        return self._set_iio_attr("temp1", "max_hyst", False, value)
+del my_cn0575

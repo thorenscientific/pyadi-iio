@@ -1,4 +1,4 @@
-# Copyright (C) 2022 Analog Devices, Inc.
+# Copyright (C) 2021 Analog Devices, Inc.
 #
 # All rights reserved.
 #
@@ -31,66 +31,46 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from adi.attribute import attribute
-from adi.context_manager import context_manager
+import adi
 
 
-class lm75(context_manager, attribute):
-    """ LM75 Temperature Sensor """
+class CN0575:
+    """ CN0575 class, exposing onboard temperature sensor, pushbutton,
+    and LED. Also reads the platform CPU's temperature, which under
+    most operating conditions should be higher than the onboard sensor.
+    """
 
-    _device_name = ""
+    def __init__(
+        self, uri=None, verbose=False,
+    ):
 
-    def __init__(self, uri="", device_index=0):
-
-        context_manager.__init__(self, uri, self._device_name)
-
-        compatible_parts = ["lm75", "adt75"]
-
-        self._ctrl = None
-        index = 0
-        # Select the device_index-th device from the lm75 family as working device.
-        for device in self._ctx.devices:
-            if device.name in compatible_parts:
-                if index == device_index:
-                    self._ctrl = device
-                    break
-                else:
-                    index += 1
+        self.gpios = adi.one_bit_adc_dac(uri)
+        self.lm75 = adi.lm75(uri)
+        self.cpu_thermal = adi.cpu_thermal(uri)
+        self.gpios.gpio_ext_led = 0  # turn off LED
+        self.gpios.gpio_ext_btn  # dummy read
 
     @property
-    def update_interval(self):
-        """Update Interval"""
-        return self._get_iio_dev_attr("update_interval")
-
-    def to_degrees(self, value):
-        """Convert raw to degrees Celsius"""
-        return value / 1000.0
-
-    def to_millidegrees(self, value):
-        """Convert degrees Celsius to millidegrees"""
-        return int(value * 1000.0)
+    def button(self):
+        """Read button state."""
+        return self.gpios.gpio_ext_btn
 
     @property
-    def input(self):
-        """LM75 temperature input value"""
-        return self._get_iio_attr("temp1", "input", False)
+    def led(self):
+        """Read LED state."""
+        return self.gpios.gpio_ext_led
+
+    @led.setter
+    def led(self, value):
+        """Set LED state"""
+        self.gpios.gpio_ext_led = value
 
     @property
-    def max(self):
-        """LM75 temperature max value"""
-        return self._get_iio_attr("temp1", "max", False)
-
-    @max.setter
-    def max(self, value):
-        """LM75 temperature max value"""
-        return self._set_iio_attr("temp1", "max", False, value)
+    def onboard_adt75(self):
+        """Read onboard ADT75 temperature."""
+        return self.lm75.to_degrees(self.lm75.input)
 
     @property
-    def max_hyst(self):
-        """LM75 max_hyst value"""
-        return self._get_iio_attr("temp1", "max_hyst", False)
-
-    @max_hyst.setter
-    def max_hyst(self, value):
-        """LM75 max_hyst value"""
-        return self._set_iio_attr("temp1", "max_hyst", False, value)
+    def rpi_cpu_temp(self):
+        """Read CPU temperature state."""
+        return self.cpu_thermal.to_degrees(self.cpu_thermal.input)
