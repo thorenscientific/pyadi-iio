@@ -1,7 +1,8 @@
-# Copyright (C) 2022-2024 Analog Devices, Inc.
+# Copyright (C) 2025 Analog Devices, Inc.
 #
 # SPDX short identifier: ADIBSD
 
+from adi.attribute import attribute
 from adi.context_manager import context_manager
 from adi.rx_tx import rx
 
@@ -10,98 +11,97 @@ class ad4080(rx, context_manager):
 
     """ AD4080 ADC """
 
-    _compatible_parts = ["ad4080"]
     _complex_data = False
-    _rx_channel_names = ["voltage0"]
     _device_name = ""
+    channel = []  # type: ignore
 
     def __init__(self, uri="", device_name="ad4080"):
-
-        """Initialize."""
         context_manager.__init__(self, uri, self._device_name)
 
-        if device_name not in self._compatible_parts:
-            raise Exception(
-                "Not a compatible device: "
-                + str(device_name)
-                + ". Please select from "
-                + str(self.self._compatible_parts)
-            )
+        compatible_part = "ad4080"
+        self._ctrl = None
+
+        if not device_name:
+            device_name = compatible_part
         else:
-            self._ctrl = self._ctx.find_device(device_name)
-            self._rxadc = self._ctx.find_device(device_name)
+            if device_name != compatible_part:
+                raise Exception(f"Not a compatible device: {device_name}")
+
+        # Select the device matching device_name as working device
+        for device in self._ctx.devices:
+            if device.name == device_name:
+                self._ctrl = device
+                self._rxadc = device
+                break
+
+        # Raise an exception if the device isn't found
+        if not self._ctrl:
+            raise Exception("AD4080 device not found")
+
+        if not self._rxadc:
+            raise Exception("Error in selecting matching device")
+
+        self._rx_channel_names = []
+        self.channel = []
+        for ch in self._ctrl.channels:
+            name = ch.id
+            self._rx_channel_names.append(name)
+            self.channel.append(self._channel(self._ctrl, name))
 
         rx.__init__(self)
 
+    class _channel(attribute):
+        """AD4080 channel"""
 
+        def __init__(self, ctrl, channel_name):
+            self.name = channel_name
+            self._ctrl = ctrl
 
-    @property
-    def scale(self):
-        """scale: Scale value"""
-        return self._get_iio_attr("voltage0", "scale", False)
-
-    @property
-    def scale_available(self):
-        """scale_avaliable: Available scale value"""
-        return self._get_iio_attr("voltage0", "scale_available", False)
+        @property
+        def scale(self):
+            """Get Scale value"""
+            return self._get_iio_attr("voltage0", "scale", False)
 
     @property
     def sampling_frequency(self):
-        """sampling_frequency: Sampling frequency value"""
-        return self._get_iio_dev_attr("sampling_frequency")
-
-
-    @property
-    def sinc_dec_rate_available(self):
-        """"""
-        return self._get_iio_dev_attr("sinc_dec_rate_available", False)
+        """Get Sampling frequency value"""
+        return self._get_iio_dev_attr("sampling_frequency", False)
 
     @property
-    def sinc_dec_rate(self):
-        """"""
-        return self._get_iio_dev_attr("sinc_dec_rate", False)
-
-    @sinc_dec_rate.setter
-    def sinc_dec_rate(self, value):
-        self._set_iio_dev_attr("sinc_dec_rate", value)
+    def oversampling_ratio_available(self):
+        """Get the oversampling ratio available values"""
+        return self._get_iio_dev_attr("oversampling_ratio_available", False)
 
     @property
-    def filter_sel_available(self):
-        """"""
-        return self._get_iio_dev_attr_str("filter_sel_available", False)
+    def oversampling_ratio(self):
+        """Get the oversampling ratio value"""
+        return self._get_iio_dev_attr("oversampling_ratio", False)
+
+    @oversampling_ratio.setter
+    def oversampling_ratio(self, value):
+        """Set the oversampling ratio value"""
+        self._set_iio_dev_attr("oversampling_ratio", value)
 
     @property
-    def filter_sel(self):
-        """"""
-        return self._get_iio_dev_attr_str("filter_sel", False)
+    def filter_type_available(self):
+        """Get the filter type available values"""
+        return self._get_iio_dev_attr_str("filter_type_available", False)
 
-    @filter_sel.setter
-    def filter_sel(self, value):
-        self._set_iio_dev_attr_str("filter_sel", value)
+    @property
+    def filter_type(self):
+        """Get the filter type value"""
+        return self._get_iio_dev_attr_str("filter_type", False)
 
+    @filter_type.setter
+    def filter_type(self, value):
+        """Set the filter type value"""
+        self._set_iio_dev_attr_str("filter_type", value)
 
-    # @property
-    # def (self):
-    #     """"""
-    #     return self._get_iio_dev_attr("", False)
+    def reg_read(self, reg):
+        """Direct Register Access via debugfs"""
+        self._set_iio_debug_attr_str("direct_reg_access", reg, self._ctrl)
+        return self._get_iio_debug_attr_str("direct_reg_access", self._ctrl)
 
-    # @.setter
-    # def (self, value):
-    #     self._set_iio_dev_attr("", value)
-
-
-    # @property
-    # def test_mode(self):
-    #     """test_mode: Select Test Mode. Options are:
-    #     off midscale_short pos_fullscale neg_fullscale checkerboard pn_long pn_short one_zero_toggle user ramp"""
-    #     return self._get_iio_dev_attr("test_mode", False)
-
-    # @test_mode.setter
-    # def test_mode(self, value):
-    #     self._set_iio_attr_str("test_mode", False, value, self._rxadc)
-
-    # @property
-    # def test_mode_available(self):
-    #     """test_mode_available: Options are:
-    #     off midscale_short pos_fullscale neg_fullscale checkerboard pn_long pn_short one_zero_toggle user ramp"""
-    #     return self._get_iio_dev_attr("test_mode_available")
+    def reg_write(self, reg, value):
+        """Direct Register Access via debugfs"""
+        self._set_iio_debug_attr_str("direct_reg_access", f"{reg} {value}", self._ctrl)

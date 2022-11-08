@@ -1,4 +1,4 @@
-# Copyright (C) 2022 Analog Devices, Inc.
+# Copyright (C) 2025 Analog Devices, Inc.
 #
 # All rights reserved.
 #
@@ -35,6 +35,7 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 from adi import ad4080
 
 # Optionally pass URI as command line argument,
@@ -42,11 +43,12 @@ from adi import ad4080
 my_uri = sys.argv[1] if len(sys.argv) >= 2 else "ip:analog.local"
 print("uri: " + str(my_uri))
 
-my_adc = ad4080(uri=my_uri, device_name="ad4080")
+my_adc = ad4080(uri=my_uri)
 
 print("Sampling frequency: ", my_adc.sampling_frequency)
-# print("Test mode: ", my_adc.test_mode)
-print("Scale: ", my_adc.scale)
+print("Filter type: ", my_adc.filter_type)
+print("Scale: ", my_adc.channel[0].scale)
+print("Oversampling ratio: ", my_adc.oversampling_ratio)
 
 plt.clf()
 # Collect data
@@ -64,4 +66,3 @@ plt.legend(
 )
 
 plt.show()
-del my_adc
