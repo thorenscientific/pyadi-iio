@@ -48,7 +48,11 @@ my_ad5592r = adi.ad5592r(uri=my_uri)
 # Create iterable list of channels
 channels = []
 for attr in dir(my_ad5592r):
-    if type(getattr(my_ad5592r, attr)) is adi.ad5592r._channel:
+    if type(getattr(my_ad5592r, attr)) in (
+        adi.ad5592r._channel_dac,
+        adi.ad5592r._channel_adc,
+        adi.ad5592r._channel_temp,
+    ):
         channels.append(getattr(my_ad5592r, attr))
 
 # Write votalge value for each channel

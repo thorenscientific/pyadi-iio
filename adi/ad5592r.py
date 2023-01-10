@@ -73,19 +73,73 @@ class ad5592r(context_manager):
             name = ch._id
             output = ch._output
             if name == "temp":
-                setattr(self, name, self._channel(self._ctrl, name, output))
+                setattr(self, name, self._channel_temp(self._ctrl, name, output))
             else:
                 if output is True:
                     setattr(
-                        self, name + "_dac", self._channel(self._ctrl, name, output)
+                        self, name + "_dac", self._channel_dac(self._ctrl, name, output)
                     )
                 else:
                     setattr(
-                        self, name + "_adc", self._channel(self._ctrl, name, output)
+                        self, name + "_adc", self._channel_adc(self._ctrl, name, output)
                     )
 
-    class _channel(attribute):
-        """AD5592R Input/Output Voltage Channels"""
+    class _channel_adc(attribute):
+        """AD5592R Input Voltage Channels"""
+
+        # AD559XR ADC channel
+        def __init__(self, ctrl, channel_name, output):
+            self.name = channel_name
+            self._ctrl = ctrl
+            self._output = output
+
+        @property
+        # AD559XR channel raw value, property only for ADC channels
+        def raw(self):
+            return self._get_iio_attr(self.name, "raw", self._output)
+
+        @property
+        # AD559XR channel scale (gain)
+        def scale(self):
+            return float(self._get_iio_attr_str(self.name, "scale", self._output))
+
+        @scale.setter
+        def scale(self, value):
+            scale_available = self._get_iio_attr(
+                self.name, "scale_available", self._output
+            )
+            for scale_available_0 in scale_available:
+                if scale_available_0 == value:
+                    self._set_iio_attr(
+                        self.name,
+                        "scale",
+                        self._output,
+                        value,  # str(Decimal(value).real) # Why do some device classes use Decimal??
+                    )
+
+        @property
+        def scale_available(self):
+            return self._get_iio_attr(self.name, "scale_available", self._output)
+
+    class _channel_dac(_channel_adc):
+        """AD5592R Output Voltage Channels
+        (Add setter to raw property)"""
+
+        # AD559XR DAC channel
+        def __init__(self, ctrl, channel_name, output):
+            super().__init__(ctrl, channel_name, output)
+
+        @property
+        # AD559XR channel raw value
+        def raw(self):
+            return self._get_iio_attr(self.name, "raw", self._output)
+
+        @raw.setter
+        def raw(self, value):
+            self._set_iio_attr(self.name, "raw", self._output, value)
+
+    class _channel_temp(attribute):
+        """AD5592R Temperature Channel"""
 
         # AD559XR voltage channel
         def __init__(self, ctrl, channel_name, output):
@@ -107,26 +161,3 @@ class ad5592r(context_manager):
         # AD559XR channel temp offset value
         def offset(self):
             return self._get_iio_attr(self.name, "offset", self._output)
-
-        @raw.setter
-        def raw(self, value):
-            if self._output is True:
-                self._set_iio_attr(self.name, "raw", self._output, value)
-
-        @scale.setter
-        def scale(self, value):
-            scale_available = self._get_iio_attr(
-                self.name, "scale_available", self._output
-            )
-            for scale_available_0 in scale_available:
-                if scale_available_0 == value:
-                    self._set_iio_attr(
-                        self.name,
-                        "scale",
-                        self._output,
-                        value,  # str(Decimal(value).real) # Why do some device classes use Decimal??
-                    )
-
-        @property
-        def scale_available(self):
-            return self._get_iio_attr(self.name, "scale_available", self._output)
