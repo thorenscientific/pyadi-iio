@@ -45,12 +45,6 @@ print("uri: " + str(my_uri))
 # it represents the physical chip that is in front of you.
 my_ad5592r = adi.ad5592r(uri=my_uri)
 
-# Create iterable list of channels
-channels = []
-for attr in dir(my_ad5592r):
-    if type(getattr(my_ad5592r, attr)) is adi.ad5592r._channel:
-        channels.append(getattr(my_ad5592r, attr))
-
 sleep(0.5)
 
 # These are on the AD5592r, but are part of the GPIO subsystem. But the clever
@@ -92,22 +86,34 @@ print("\n\n")
 
 # And for the sake of completeness... print out analog channel information.
 
-for ch in channels:
+# Read each channels and its parameters
+# for ch in channels:
+for ch in my_ad5592r.ch_names:
     print("***********************")  # Just a separator for easier serial read
-    print("Channel Name: ", ch.name)  # Channel Name
-    print("is Output? ", ch._output)  # True = Output/Write/DAC, False = Input/Read/ADC
+    print("Channel Name: ", my_ad5592r.ch_names[ch].name)  # Channel Name
     print(
-        "Channel Scale: ", ch.scale
+        "is Output? ", my_ad5592r.ch_names[ch]._output
+    )  # True = Output/Write/DAC, False = Input/Read/ADC
+    print(
+        "Channel Scale: ", my_ad5592r.ch_names[ch].scale
     )  # Channel Scale can be 0.610351562 or 0.610351562*2
+    print(
+        "Channel Raw Value: ", float(my_ad5592r.ch_names[ch].raw)
+    )  # Channel Raw Value
 
     # Print Temperature in Celsius
-    if ch.name == "temp":
-        T = ((ch.raw + ch.offset) * ch.scale) / 1000
+    if my_ad5592r.ch_names[ch].name == "temp":
+        print("Channel Offset Value: ", float(my_ad5592r.ch_names[ch].offset))
+        T = (
+            (my_ad5592r.ch_names[ch].raw + my_ad5592r.ch_names[ch].offset)
+            * my_ad5592r.ch_names[ch].scale
+        ) / 1000
         print("Channel Temperature (C): ", float(T))
     # Print Real Voltage in mV
     else:
         print(
-            "Channel Real Value (mV): ", float(ch.raw * ch.scale)
-        )  # Channel Raw Value
+            "Channel Real Value (mV): ",
+            float(my_ad5592r.ch_names[ch].raw * my_ad5592r.ch_names[ch].scale),
+        )
 # del my_ad5592r
 # del my_gpios

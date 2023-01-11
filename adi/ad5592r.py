@@ -68,21 +68,25 @@ class ad5592r(context_manager):
                 self._ctrl = device
                 break
 
+        self.ch_names = {}
+
         # Dynamically get channels after the index
         for ch in self._ctrl.channels:
             name = ch._id
             output = ch._output
             if name == "temp":
-                setattr(self, name, self._channel_temp(self._ctrl, name, output))
+                self.ch_names[name] = self._channel_temp(
+                    self._ctrl, name, output
+                )  # Test
             else:
                 if output is True:
-                    setattr(
-                        self, name + "_dac", self._channel_dac(self._ctrl, name, output)
-                    )
+                    self.ch_names[name + "_dac"] = self._channel_dac(
+                        self._ctrl, name, output
+                    )  # Test
                 else:
-                    setattr(
-                        self, name + "_adc", self._channel_adc(self._ctrl, name, output)
-                    )
+                    self.ch_names[name + "_adc"] = self._channel_adc(
+                        self._ctrl, name, output
+                    )  # Test
 
     class _channel_adc(attribute):
         """AD5592R Input Voltage Channels"""
@@ -114,7 +118,7 @@ class ad5592r(context_manager):
                         self.name,
                         "scale",
                         self._output,
-                        value,  # str(Decimal(value).real) # Why do some device classes use Decimal??
+                        value,  # str(Decimal(value).real) # Why do some device classes use Decimal? Seems to break in this case.
                     )
 
         @property
