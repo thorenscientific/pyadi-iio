@@ -31,15 +31,12 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-from decimal import Decimal
-
 from adi.attribute import attribute
 from adi.context_manager import context_manager
 
 
 class ad5592r(context_manager):
-    """AD5592R ADC/DAC"""
+    """AD5592R 8-channel ADC/DAC/GPIO"""
 
     _complex_data = False
     channel = []  # type: ignore
@@ -68,43 +65,43 @@ class ad5592r(context_manager):
                 self._ctrl = device
                 break
 
-        self.ch_names = {}
+        self.ch_by_name = {}
+        """"Dictionary of decriptive channel names as keys, the channels themselves as values"""
 
         # Dynamically get channels after the index
         for ch in self._ctrl.channels:
             name = ch._id
             output = ch._output
             if name == "temp":
-                self.ch_names[name] = self._channel_temp(
+                self.ch_by_name[name] = self._channel_temp(
                     self._ctrl, name, output
                 )  # Test
             else:
                 if output is True:
-                    self.ch_names[name + "_dac"] = self._channel_dac(
+                    self.ch_by_name[name + "_dac"] = self._channel_dac(
                         self._ctrl, name, output
                     )  # Test
                 else:
-                    self.ch_names[name + "_adc"] = self._channel_adc(
+                    self.ch_by_name[name + "_adc"] = self._channel_adc(
                         self._ctrl, name, output
                     )  # Test
 
     class _channel_adc(attribute):
         """AD5592R Input Voltage Channels"""
 
-        # AD559XR ADC channel
         def __init__(self, ctrl, channel_name, output):
             self.name = channel_name
             self._ctrl = ctrl
             self._output = output
 
         @property
-        # AD559XR channel raw value, property only for ADC channels
         def raw(self):
+            """AD559XR channel raw value, property only for ADC channels"""
             return self._get_iio_attr(self.name, "raw", self._output)
 
         @property
-        # AD559XR channel scale (gain)
         def scale(self):
+            """AD559XR channel scale (gain)"""
             return float(self._get_iio_attr_str(self.name, "scale", self._output))
 
         @scale.setter
@@ -129,13 +126,12 @@ class ad5592r(context_manager):
         """AD5592R Output Voltage Channels
         (Add setter to raw property)"""
 
-        # AD559XR DAC channel
         def __init__(self, ctrl, channel_name, output):
             super().__init__(ctrl, channel_name, output)
 
         @property
-        # AD559XR channel raw value
         def raw(self):
+            """AD559XR DAC channel raw value"""
             return self._get_iio_attr(self.name, "raw", self._output)
 
         @raw.setter
@@ -145,23 +141,22 @@ class ad5592r(context_manager):
     class _channel_temp(attribute):
         """AD5592R Temperature Channel"""
 
-        # AD559XR voltage channel
         def __init__(self, ctrl, channel_name, output):
             self.name = channel_name
             self._ctrl = ctrl
             self._output = output
 
         @property
-        # AD559XR channel raw value
         def raw(self):
+            """AD559XR temperature channel raw value"""
             return self._get_iio_attr(self.name, "raw", self._output)
 
         @property
-        # AD559XR channel scale (gain)
         def scale(self):
+            """AD559XR channel scale (gain)"""
             return float(self._get_iio_attr_str(self.name, "scale", self._output))
 
         @property
-        # AD559XR channel temp offset value
         def offset(self):
+            """AD559XR channel temp offset value"""
             return self._get_iio_attr(self.name, "offset", self._output)

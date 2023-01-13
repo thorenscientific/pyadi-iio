@@ -47,39 +47,41 @@ my_ad5592r = adi.ad5592r(uri=my_uri)
 
 # Write votalge value for each channel
 # for ch in channels:
-for ch in my_ad5592r.ch_names:
+for ch in my_ad5592r.ch_by_name:
     if "dac" in ch:  # Only write if it is an output channel
         mV = input(
-            f"Enter desired voltage for channel {my_ad5592r.ch_names[ch].name} in mV: "
+            f"Enter desired voltage for channel {my_ad5592r.ch_by_name[ch].name} in mV: "
         )
-        my_ad5592r.ch_names[ch].raw = float(mV) / float(my_ad5592r.ch_names[ch].scale)
+        my_ad5592r.ch_by_name[ch].raw = float(mV) / float(
+            my_ad5592r.ch_by_name[ch].scale
+        )
 
 # Read each channels and its parameters
 # for ch in channels:
-for ch in my_ad5592r.ch_names:
+for ch in my_ad5592r.ch_by_name:
     print("***********************")  # Just a separator for easier serial read
-    print("Channel Name: ", my_ad5592r.ch_names[ch].name)  # Channel Name
+    print("Channel Name: ", my_ad5592r.ch_by_name[ch].name)  # Channel Name
     print(
-        "is Output? ", my_ad5592r.ch_names[ch]._output
+        "is Output? ", my_ad5592r.ch_by_name[ch]._output
     )  # True = Output/Write/DAC, False = Input/Read/ADC
     print(
-        "Channel Scale: ", my_ad5592r.ch_names[ch].scale
+        "Channel Scale: ", my_ad5592r.ch_by_name[ch].scale
     )  # Channel Scale can be 0.610351562 or 0.610351562*2
     print(
-        "Channel Raw Value: ", float(my_ad5592r.ch_names[ch].raw)
+        "Channel Raw Value: ", float(my_ad5592r.ch_by_name[ch].raw)
     )  # Channel Raw Value
 
     # Print Temperature in Celsius
-    if my_ad5592r.ch_names[ch].name == "temp":
-        print("Channel Offset Value: ", float(my_ad5592r.ch_names[ch].offset))
+    if my_ad5592r.ch_by_name[ch].name == "temp":
+        print("Channel Offset Value: ", float(my_ad5592r.ch_by_name[ch].offset))
         T = (
-            (my_ad5592r.ch_names[ch].raw + my_ad5592r.ch_names[ch].offset)
-            * my_ad5592r.ch_names[ch].scale
+            (my_ad5592r.ch_by_name[ch].raw + my_ad5592r.ch_by_name[ch].offset)
+            * my_ad5592r.ch_by_name[ch].scale
         ) / 1000
         print("Channel Temperature (C): ", float(T))
     # Print Real Voltage in mV
     else:
         print(
             "Channel Real Value (mV): ",
-            float(my_ad5592r.ch_names[ch].raw * my_ad5592r.ch_names[ch].scale),
+            float(my_ad5592r.ch_by_name[ch].raw * my_ad5592r.ch_by_name[ch].scale),
         )

@@ -50,32 +50,32 @@ my_ad5592r = adi.ad5592r(uri=my_uri)
 
 # Read each channels and its parameters
 # for ch in channels:
-for ch in my_ad5592r.ch_names:
+for ch in my_ad5592r.ch_by_name:
     print("***********************")  # Just a separator for easier serial read
-    print("Channel Name: ", my_ad5592r.ch_names[ch].name)  # Channel Name
+    print("Channel Name: ", my_ad5592r.ch_by_name[ch].name)  # Channel Name
     print(
-        "is Output? ", my_ad5592r.ch_names[ch]._output
+        "is Output? ", my_ad5592r.ch_by_name[ch]._output
     )  # True = Output/Write/DAC, False = Input/Read/ADC
     print(
-        "Channel Scale: ", my_ad5592r.ch_names[ch].scale
+        "Channel Scale: ", my_ad5592r.ch_by_name[ch].scale
     )  # Channel Scale can be 0.610351562 or 0.610351562*2
     print(
-        "Channel Raw Value: ", float(my_ad5592r.ch_names[ch].raw)
+        "Channel Raw Value: ", float(my_ad5592r.ch_by_name[ch].raw)
     )  # Channel Raw Value
 
     # Print Temperature in Celsius
-    if my_ad5592r.ch_names[ch].name == "temp":
-        print("Channel Offset Value: ", float(my_ad5592r.ch_names[ch].offset))
+    if my_ad5592r.ch_by_name[ch].name == "temp":
+        print("Channel Offset Value: ", float(my_ad5592r.ch_by_name[ch].offset))
         T = (
-            (my_ad5592r.ch_names[ch].raw + my_ad5592r.ch_names[ch].offset)
-            * my_ad5592r.ch_names[ch].scale
+            (my_ad5592r.ch_by_name[ch].raw + my_ad5592r.ch_by_name[ch].offset)
+            * my_ad5592r.ch_by_name[ch].scale
         ) / 1000
         print("Channel Temperature (C): ", float(T))
     # Print Real Voltage in mV
     else:
         print(
             "Channel Real Value (mV): ",
-            float(my_ad5592r.ch_names[ch].raw * my_ad5592r.ch_names[ch].scale),
+            float(my_ad5592r.ch_by_name[ch].raw * my_ad5592r.ch_by_name[ch].scale),
         )  # Channel Raw Value
 
 # Define a few constants, according to curve tracer circuit
@@ -85,10 +85,10 @@ Vbe = 0.7  # Volts (An approximation, of course...)
 
 # Symbolically associate net names with AD5592r channels...
 # NOW are things getting intuitive? :)
-Vbdrive = my_ad5592r.ch_names["voltage0_dac"]
-Vcsense = my_ad5592r.ch_names["voltage1_adc"]
-Vcdrive = my_ad5592r.ch_names["voltage2_dac"]
-Vcdrive_meas = my_ad5592r.ch_names["voltage2_adc"]
+Vbdrive = my_ad5592r.ch_by_name["voltage0_dac"]
+Vcsense = my_ad5592r.ch_by_name["voltage1_adc"]
+Vcdrive = my_ad5592r.ch_by_name["voltage2_dac"]
+Vcdrive_meas = my_ad5592r.ch_by_name["voltage2_adc"]
 
 mV_per_lsb = Vcdrive.scale  # Makes things a bit more intuitive below.
 # Scale is identical for all channels of the AD5592r,
