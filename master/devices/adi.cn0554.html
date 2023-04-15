@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
-    <link href="../_static/favicon.png" sizes="32x32" rel="icon" type="image/png"><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="daq3" href="adi.daq3.html" /><link rel="prev" title="cn0554" href="adi.cn0554.html" />
+    <link href="../_static/favicon.png" sizes="32x32" rel="icon" type="image/png"><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="daq2" href="adi.daq2.html" /><link rel="prev" title="cn0540" href="adi.cn0540.html" />
 
     <!-- Generated with Sphinx 5.3.0 and Furo 2023.03.27 -->
-        <title>daq2 - Analog Devices Hardware Python Interfaces 0.0.16</title>
+        <title>cn0554 - Analog Devices Hardware Python Interfaces 0.0.16</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=fad236701ea90a88636c2a8c73b44ae642ed2a53" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -244,8 +244,8 @@
 <li class="toctree-l2"><a class="reference internal" href="adi.cn0511.html">adi.cn0511 module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.cn0532.html">cn0532</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.cn0540.html">cn0540</a></li>
-<li class="toctree-l2"><a class="reference internal" href="adi.cn0554.html">cn0554</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">daq2</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">cn0554</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adi.daq2.html">daq2</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.daq3.html">daq3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.fmc_vna.html">fmc_vna</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.fmcadc3.html">adi.fmcadc3 module</a></li>
@@ -313,13 +313,85 @@
           </label>
         </div>
         <article role="main">
-          <section id="module-adi.daq2">
-<span id="daq2"></span><h1>daq2<a class="headerlink" href="#module-adi.daq2" title="Permalink to this heading"></a></h1>
+          <section id="module-adi.cn0554">
+<span id="cn0554"></span><h1>cn0554<a class="headerlink" href="#module-adi.cn0554" title="Permalink to this heading"></a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="adi.daq2.DAQ2">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adi.daq2.</span></span><span class="sig-name descname"><span class="pre">DAQ2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.daq2.DAQ2" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="adi.ad9144.html#adi.ad9144.ad9144" title="adi.ad9144.ad9144"><code class="xref py py-class docutils literal notranslate"><span class="pre">ad9144</span></code></a>, <a class="reference internal" href="adi.ad9680.html#adi.ad9680.ad9680" title="adi.ad9680.ad9680"><code class="xref py py-class docutils literal notranslate"><span class="pre">ad9680</span></code></a></p>
-<p>DAQ2 High-Speed Data Aquistion Device</p>
+<dt class="sig sig-object py" id="adi.cn0554.cn0554">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adi.cn0554.</span></span><span class="sig-name descname"><span class="pre">cn0554</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ip:analog.local'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.cn0554.cn0554" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>CN0554 Mixed Signal Raspberry Pi Hat</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.adc_in_channels">
+<span class="sig-name descname"><span class="pre">adc_in_channels</span></span><a class="headerlink" href="#adi.cn0554.cn0554.adc_in_channels" title="Permalink to this definition"></a></dt>
+<dd><p>dac_out_channels: DAC channel names derived from onboard LTC2688.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.convert_to_volts">
+<span class="sig-name descname"><span class="pre">convert_to_volts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_voltage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.cn0554.cn0554.convert_to_volts" title="Permalink to this definition"></a></dt>
+<dd><p>Convert ADC data using scale factors based on header configuration</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.dac_out_channels">
+<span class="sig-name descname"><span class="pre">dac_out_channels</span></span><a class="headerlink" href="#adi.cn0554.cn0554.dac_out_channels" title="Permalink to this definition"></a></dt>
+<dd><p>out_reference: DAC voltage reference in Volts. Valid values are 4.096 and 2.5.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.in_channels">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">in_channels</span></span><a class="headerlink" href="#adi.cn0554.cn0554.in_channels" title="Permalink to this definition"></a></dt>
+<dd><p>Get number of ADC input channels</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.in_scale">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">in_scale</span></span><a class="headerlink" href="#adi.cn0554.cn0554.in_scale" title="Permalink to this definition"></a></dt>
+<dd><p>in_scale: unitless scale factor based on onboard resistor divider</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.out_channels">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">out_channels</span></span><a class="headerlink" href="#adi.cn0554.cn0554.out_channels" title="Permalink to this definition"></a></dt>
+<dd><p>Get number of DAC output channels</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.out_reference">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">out_reference</span></span><a class="headerlink" href="#adi.cn0554.cn0554.out_reference" title="Permalink to this definition"></a></dt>
+<dd><p>Get voltage reference used for DAC channels</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.rx">
+<span class="sig-name descname"><span class="pre">rx</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#adi.cn0554.cn0554.rx" title="Permalink to this definition"></a></dt>
+<dd><p>Get data from enabled ADC channels</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.rx_buffer_size">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rx_buffer_size</span></span><a class="headerlink" href="#adi.cn0554.cn0554.rx_buffer_size" title="Permalink to this definition"></a></dt>
+<dd><p>Get number of datapoints used during capture</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.rx_enabled_channels">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rx_enabled_channels</span></span><a class="headerlink" href="#adi.cn0554.cn0554.rx_enabled_channels" title="Permalink to this definition"></a></dt>
+<dd><p>Get list of enabled input adc channels</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.rx_output_type">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rx_output_type</span></span><a class="headerlink" href="#adi.cn0554.cn0554.rx_output_type" title="Permalink to this definition"></a></dt>
+<dd><p>Get value of CN0554’s rx output type (raw or SI)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="adi.cn0554.cn0554.sample_rate">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sample_rate</span></span><a class="headerlink" href="#adi.cn0554.cn0554.sample_rate" title="Permalink to this definition"></a></dt>
+<dd><p>Get CN0554’s AD7124 sampling rate</p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -329,23 +401,23 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="adi.daq3.html">
+          <a class="next-page" href="adi.daq2.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">daq3</div>
+                <div class="title">daq2</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="adi.cn0554.html">
+          <a class="prev-page" href="adi.cn0540.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">cn0554</div>
+                <div class="title">cn0540</div>
                 
               </div>
             </a>
@@ -379,8 +451,22 @@
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">daq2</a><ul>
-<li><a class="reference internal" href="#adi.daq2.DAQ2"><code class="docutils literal notranslate"><span class="pre">DAQ2</span></code></a></li>
+<li><a class="reference internal" href="#">cn0554</a><ul>
+<li><a class="reference internal" href="#adi.cn0554.cn0554"><code class="docutils literal notranslate"><span class="pre">cn0554</span></code></a><ul>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.adc_in_channels"><code class="docutils literal notranslate"><span class="pre">cn0554.adc_in_channels</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.convert_to_volts"><code class="docutils literal notranslate"><span class="pre">cn0554.convert_to_volts()</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.dac_out_channels"><code class="docutils literal notranslate"><span class="pre">cn0554.dac_out_channels</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.in_channels"><code class="docutils literal notranslate"><span class="pre">cn0554.in_channels</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.in_scale"><code class="docutils literal notranslate"><span class="pre">cn0554.in_scale</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.out_channels"><code class="docutils literal notranslate"><span class="pre">cn0554.out_channels</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.out_reference"><code class="docutils literal notranslate"><span class="pre">cn0554.out_reference</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.rx"><code class="docutils literal notranslate"><span class="pre">cn0554.rx()</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.rx_buffer_size"><code class="docutils literal notranslate"><span class="pre">cn0554.rx_buffer_size</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.rx_enabled_channels"><code class="docutils literal notranslate"><span class="pre">cn0554.rx_enabled_channels</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.rx_output_type"><code class="docutils literal notranslate"><span class="pre">cn0554.rx_output_type</span></code></a></li>
+<li><a class="reference internal" href="#adi.cn0554.cn0554.sample_rate"><code class="docutils literal notranslate"><span class="pre">cn0554.sample_rate</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
