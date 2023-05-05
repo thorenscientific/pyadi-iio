@@ -233,7 +233,14 @@ class CN0566(adf4159, adar1000_array):
         self.frequency = int(value / 4)
 
     def configure(self, device_mode="rx"):
-        """ Configure the device/beamformer properties like RAM bypass, Tr source etc. """
+        """
+        Configure the device/beamformer properties like RAM bypass, Tr source etc.
+
+        Parameters
+        ----------
+        device_mode: type=string
+            ("rx", "tx", "disabled", default = "rx")
+        """
         self.device_mode = device_mode
         for device in self.devices.values():  # For device in Dict of device array
             # Configure ADAR1000

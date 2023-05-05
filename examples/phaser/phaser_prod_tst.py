@@ -101,7 +101,7 @@ use_tx = True  # Use on board TX w/ cabled antenna, NOT external HB100
 if os.name == "nt":  # Assume running on Windows
     rpi_ip = "ip:phaser.local"  # IP address of the remote Raspberry Pi
     # sdr_ip = "ip:pluto.local"  # Pluto IP, with modified IP address or not
-    sdr_ip = "ip:phaser.local:12345"  # Context Forwarding in libiio 0.24!
+    sdr_ip = "ip:phaser.local:50901"  # Context Forwarding in libiio 0.24!
     print("Running on Windows, connecting to ", rpi_ip, " and ", sdr_ip)
 elif os.name == "posix":
     rpi_ip = "ip:localhost"  # Assume running locally on Raspberry Pi
