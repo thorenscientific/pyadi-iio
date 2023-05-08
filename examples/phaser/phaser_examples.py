@@ -42,13 +42,14 @@
 
 # cal - perform both gain and phase calibration, save to files.
 
-import os
 import sys
 import time
 from time import sleep
 
 import matplotlib.pyplot as plt
 import numpy as np
+from adi import ad9361
+from adi.cn0566 import CN0566
 from phaser_functions import (
     calculate_plot,
     channel_calibration,
@@ -107,40 +108,27 @@ def do_cal_phase():
     plt.show()
 
 
-if os.name == "nt":  # Assume running on Windows
-    rpi_ip = "ip:phaser.local"  # IP address of the remote Raspberry Pi
-    #     rpi_ip = "ip:169.254.225.48" # Hard code an IP here for debug
-    # sdr_ip = "ip:pluto.local"  # Pluto IP, with modified IP address or not
-    sdr_ip = "ip:phaser.local:50901"  # Context Forwarding in libiio 0.24!
-    print("Running on Windows, connecting to ", rpi_ip, " and ", sdr_ip)
-elif os.name == "posix":
-    rpi_ip = "ip:localhost"  # Assume running locally on Raspberry Pi
-    sdr_ip = "ip:192.168.2.1"  # Historical - assume default Pluto IP
-    print("Running on Linux, connecting to ", rpi_ip, " and ", sdr_ip)
-else:
-    print("Can't detect OS")
-
+# First try to connect to a locally connected CN0566. On success, connect,
+# on failure, connect to remote CN0566
 
 try:
-    x = my_sdr.uri
-    print("Pluto already connected")
-except NameError:
-    print("Pluto not connected, connecting...")
-    from adi import ad9361
+    print("Attempting to connect to CN0566 via ip:localhost...")
+    my_phaser = CN0566(uri="ip:localhost")
+    print("Found CN0566. Connecting to PlutoSDR via default IP address...")
+    my_sdr = ad9361(uri="ip:192.168.2.1")
+    print("PlutoSDR connected.")
 
-    my_sdr = ad9361(uri=sdr_ip)
-#    my_sdr = SDR_init(sdr_ip, 30000000, config.Tx_freq, config.Rx_freq, 6, -6, 1024)
+except:
+    print("CN0566 on ip.localhost not found, connecting via ip:phaser.local...")
+    my_phaser = CN0566(uri="ip:phaser.local")
+    print("Found CN0566. Connecting to PlutoSDR via shared context...")
+    my_sdr = ad9361(uri="ip:phaser.local:50901")
+    print("Found SDR on shared phaser.local.")
+
+my_phaser.sdr = my_sdr  # Set my_phaser.sdr
 
 time.sleep(0.5)
 
-try:
-    x = my_phaser.uri
-    print("cn0566 already connected")
-except NameError:
-    print("cn0566 not connected, connecting...")
-    from adi.cn0566 import CN0566
-
-    my_phaser = CN0566(uri=rpi_ip, sdr=my_sdr)
 
 # By default device_mode is "rx"
 my_phaser.configure(device_mode="rx")

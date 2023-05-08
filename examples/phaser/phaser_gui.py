@@ -35,6 +35,7 @@
 
 import datetime
 import os
+import socket
 import sys
 import time
 import tkinter as tk
@@ -72,18 +73,24 @@ except:
     print("No signal freq found, keeping at ", config.SignalFreq)
 
 
-if os.name == "nt":  # Assume running on Windows
+# Figure out if we're running on the Raspberry Pi, indicated by a host name of "phaser".
+
+if socket.gethostname().find(".") >= 0:
+    my_hostname = socket.gethostname()
+else:
+    my_hostname = socket.gethostbyaddr(socket.gethostname())[0]
+
+if "phaser" in my_hostname:  # See if we're running locally on Raspberry Pi
+    rpi_ip = "ip:localhost"
+    sdr_ip = "ip:192.168.2.1"  # Historical - assume default Pluto IP
+    print("Hostname is phaser, connecting to ", rpi_ip, " and ", sdr_ip)
+
+else:  # NOT running on the phaser, connect to phaser.local over network
     rpi_ip = "ip:phaser.local"  # IP address of the remote Raspberry Pi
     #     rpi_ip = "ip:169.254.225.48" # Hard code an IP here for debug
     # sdr_ip = "ip:pluto.local"  # Pluto IP, with modified IP address or not
     sdr_ip = "ip:phaser.local:50901"  # Context Forwarding in libiio 0.24!
-    print("Running on Windows, connecting to ", rpi_ip, " and ", sdr_ip)
-elif os.name == "posix":
-    rpi_ip = "ip:localhost"  # Assume running locally on Raspberry Pi
-    sdr_ip = "ip:192.168.2.1"  # Historical - assume default Pluto IP
-    print("Running on Linux, connecting to ", rpi_ip, " and ", sdr_ip)
-else:
-    print("Can't detect OS")
+    print("Hostname is NOT phaser, connecting to ", rpi_ip, " and ", sdr_ip)
 
 
 gpios = adi.one_bit_adc_dac(rpi_ip)
