@@ -32,7 +32,6 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pickle
-from statistics import mean
 from time import sleep
 
 import adi
@@ -45,21 +44,49 @@ class CN0566(adf4159, adar1000_array):
     """CN0566 class inherits from adar1000_array and adf4159 and adds
     operations for beamforming like default configuration,
     calibration, set_beam_phase_diff, etc.
-    gpios (as one-bit-adc-dac) are instantiated internally.
+    _gpios (as one-bit-adc-dac) are instantiated internally.
     ad7291 temperature / voltage monitor instantiated internally.
-    sdr argument is an instance of a Pluto SDR with updated firmware,
+    CN0566.sdr property is an instance of a Pluto SDR with updated firmware,
     and updated to 2t2r.
+
+    parameters:
+        uri: type=string
+            URI of Raspberry Pi attached to the phaser board
+        verbose: type=boolean
+            Print extra debug information
     """
 
-    # MWT: Still up for debate - inherit, or nest? Nesting may actually be easier to understand.
+    # MWT: Open question: Refactor to nest rather than inherit?
+
+    num_elements = 8
+    """Number of antenna elements"""
+    phase_step_size = 2.8125  # it is 360/2**number of bits. (number of bits = 6)
+    """Phase adjustment resolution"""
+    c = 299792458
+    """speed of light in m/s"""
+    element_spacing = 0.015
+    """Element to element spacing of the antenna in meters"""
+    device_mode = "rx"
+    """For future RX/TX operation. Set to RX."""
+
+    # Scaling factors for voltage AD7291 monitor, straight from schematic.
+    _v0_vdd1v8_scale = 1.0 + (10.0 / 10.0)  # Resistances in k ohms.
+    _v1_vdd3v0_scale = 1.0 + (10.0 / 10.0)
+    _v2_vdd3v3_scale = 1.0 + (10.0 / 10.0)
+    _v3_vdd4v5_scale = 1.0 + (30.1 / 10.0)
+    _v4_vdd_amp_scale = 1.0 + (69.8 / 10.0)
+    _v5_vinput_scale = 1.0 + (30.1 / 10.0)
+    _v6_imon_scale = 1.0  # LTC4217 IMON = 50uA/A * 20k = 1 V / A
+    _v7_vtune_scale = 1.0 + (69.8 / 10.0)
+
     def __init__(
         self,
         uri=None,
         sdr=None,
-        chip_ids=["BEAM0", "BEAM1"],
-        device_map=[[1], [2]],
-        element_map=[[1, 2, 3, 4, 5, 6, 7, 8]],  # [[1, 2, 3, 4], [5, 6, 7, 8]],
-        device_element_map={
+        _chip_ids=["BEAM0", "BEAM1"],
+        _device_map=[[1], [2]],
+        _element_map=[[1, 2, 3, 4, 5, 6, 7, 8]],  # [[1, 2, 3, 4], [5, 6, 7, 8]],
+        _device_element_map={
             1: [7, 8, 5, 6],  # i.e. channel2 of device1 (BEAM0), maps to element 8
             2: [3, 4, 1, 2],
         },
@@ -73,64 +100,39 @@ class CN0566(adf4159, adar1000_array):
             print("attempting to open ADAR1000 array, uri: ", str(uri))
         sleep(0.5)
         adar1000_array.__init__(
-            self, uri, chip_ids, device_map, element_map, device_element_map
+            self, uri, _chip_ids, _device_map, _element_map, _device_element_map
         )
 
         if verbose is True:
             print("attempting to open gpios , uri: ", str(uri))
         sleep(0.5)
-        self.gpios = adi.one_bit_adc_dac(uri)
+        self._gpios = adi.one_bit_adc_dac(uri)
 
         if verbose is True:
             print("attempting to open AD7291 v/t monitor, uri: ", str(uri))
         sleep(0.5)
-        self.monitor = adi.ad7291(uri)
+        self._monitor = adi.ad7291(uri)
 
         """ Initialize all the class variables for the project. """
-        self.num_elements = 8  # eq. to 4 * len(list(self.devices.values()))
-        self.device_mode = "rx"  # Default to RX.
-        self.SignalFreq = 10492000000  # Frequency of source
+
         self.Averages = 16  # Number of Avg to be taken.
-        self.phase_step_size = (
-            2.8125  # it is 360/2**number of bits. (number of bits = 6)
-        )
-        self.steer_res = (
-            2.8125  # It is steering resolution. This would be user selected value
-        )
-        self.c = 299792458  # speed of light in m/s
-        self.element_spacing = (
-            0.015  # element to element spacing of the antenna in meters
-        )
-        self.res_bits = 1  # res_bits and bits are two different var. It can be variable, but it is hardset to 1 for now
-        self.pcal = [
-            0.0 for i in range(0, (self.num_elements))
-        ]  # default phase cal value i.e 0
-        self.ccal = [
-            0.0,
-            0.0,
-        ]  # Gain compensation for the two RX channels in dB. Includes all errors, including the SDR's
-        self.gcal = [
-            1.0 for i in range(0, self.num_elements)
-        ]  # Per-element gain compensation, AFTER above channel compensation. Use to scale value sent to ADAR1000.
+
+        self.pcal = [0.0 for i in range(0, (self.num_elements))]
+        """ Phase calibration array. Add this value to the desired phase. Initialize to zero (no correction). """
+        self.ccal = [0.0, 0.0]
+        """ Gain compensation for the two RX channels in dB. Includes all errors, including the SDRs """
+        self.gcal = [1.0 for i in range(0, self.num_elements)]
+        """ Per-element gain compensation, AFTER above channel compensation. Use to scale value sent to ADAR1000. """
         self.ph_deltas = [
             0 for i in range(0, (self.num_elements) - 1)
         ]  # Phase delta between elements
         self.sdr = sdr  # rx_device/sdr that rx and plots
         self.gain_cal = False  # gain/phase calibration status flag it goes True when performing calibration
         self.phase_cal = False
-        # Scaling factors for voltage AD7291 monitor, straight from schematic.
-        self.v0_vdd1v8_scale = 1.0 + (10.0 / 10.0)  # Resistances in k ohms.
-        self.v1_vdd3v0_scale = 1.0 + (10.0 / 10.0)
-        self.v2_vdd3v3_scale = 1.0 + (10.0 / 10.0)
-        self.v3_vdd4v5_scale = 1.0 + (30.1 / 10.0)
-        self.v4_vdd_amp_scale = 1.0 + (69.8 / 10.0)
-        self.v5_vinput_scale = 1.0 + (30.1 / 10.0)
-        self.v6_imon_scale = 1.0  # LTC4217 IMON = 50uA/A * 20k = 1 V / A
-        self.v7_vtune_scale = 1.0 + (69.8 / 10.0)
 
         ### Initialize ADF4159 / Local Oscillator ###
 
-        self.lo = 10.5e9
+        self.lo = 10.5e9  # Nominal operating frequency
 
         BW = 500e6 / 4
         num_steps = 1000
@@ -156,30 +158,38 @@ class CN0566(adf4159, adar1000_array):
         self.powerdown = 0
         self.enable = 0  # 0 = PLL enable.  Write this last to update all the registers
 
-        ### Initialize GPIOS / set outputs ###
-        self.gpios.gpio_vctrl_1 = 1  # Onboard PLL/LO source
-        self.gpios.gpio_vctrl_2 = 1  # Send LO to TX circuitry
+        ### Initialize gpios / set outputs ###
+        self._gpios.gpio_vctrl_1 = 1  # Onboard PLL/LO source
+        self._gpios.gpio_vctrl_2 = 1  # Send LO to TX circuitry
 
-        self.gpios.gpio_div_mr = 0  # TX switch toggler divider reset
-        self.gpios.gpio_div_s0 = 0  # TX toggle divider lsb (1s)
-        self.gpios.gpio_div_s1 = 0  # TX toggle divider 2s
-        self.gpios.gpio_div_s2 = 0  # TX toggle divider 4s
-        self.gpios.gpio_rx_load = 0  # ADAR1000 RX load (cycle through RAM table)
-        self.gpios.gpio_tr = 0  # ADAR1000 transmit / receive mode. RX = 0 (assuming)
-        self.gpios.gpio_tx_sw = (
+        self._gpios.gpio_div_mr = 0  # TX switch toggler divider reset
+        self._gpios.gpio_div_s0 = 0  # TX toggle divider lsb (1s)
+        self._gpios.gpio_div_s1 = 0  # TX toggle divider 2s
+        self._gpios.gpio_div_s2 = 0  # TX toggle divider 4s
+        self._gpios.gpio_rx_load = 0  # ADAR1000 RX load (cycle through RAM table)
+        self._gpios.gpio_tr = 0  # ADAR1000 transmit / receive mode. RX = 0 (assuming)
+        self._gpios.gpio_tx_sw = (
             0  # Direct control of TX switch when div=[000]. 0 = TX_OUT_2, 1 = TX_OUT_1
         )
         # Read input
         self.muxout = (
-            self.gpios.gpio_muxout
+            self._gpios.gpio_muxout
         )  # PLL MUXOUT, assign to PLL lock in the future
 
     def set_tx_sw_div(self, div_ratio):
-        """ Set TX switch toggle divide ratio. """
-        state_map = {0: 0, 2: 1, 4: 2, 8: 3, 16: 4, 32: 5, 64: 6, 128: 7}
-        self.gpios.gpio_div_s0 = 0b001 & state_map[div_ratio]
-        self.gpios.gpio_div_s1 = (0b010 & state_map[div_ratio]) >> 1
-        self.gpios.gpio_div_s2 = (0b100 & state_map[div_ratio]) >> 2
+        """ Set TX switch toggle divide ratio. Possible values are:
+                0 (direct TX_OUT control via gpio_tx_sw)
+                divide by 2, 4, 8, 16, 32, 64, 128"""
+        div_pin_map = {0: 0, 2: 1, 4: 2, 8: 3, 16: 4, 32: 5, 64: 6, 128: 7}
+        if div_pin_map.__contains__(div_ratio):
+            self._gpios.gpio_div_s0 = 0b001 & div_pin_map[div_ratio]
+            self._gpios.gpio_div_s1 = (0b010 & div_pin_map[div_ratio]) >> 1
+            self._gpios.gpio_div_s2 = (0b100 & div_pin_map[div_ratio]) >> 2
+        else:
+            print(
+                "Invalid divide ratio, options are 0 for direct control"
+                " via gpio_tx_sw, 2, 4, 8, 16, 32, 64, 128"
+            )
 
     def read_monitor(self, verbose=False):
         """ Read all voltage / temperature monitor channels.
@@ -191,15 +201,15 @@ class CN0566(adf4159, adar1000_array):
         returns:
             An array of all readings in SI units (deg. C, Volts)
         """
-        board_temperature = self.monitor.temp0()
-        v0_vdd1v8 = self.monitor.voltage0() * self.v0_vdd1v8_scale / 1000.0
-        v1_vdd3v0 = self.monitor.voltage1() * self.v1_vdd3v0_scale / 1000.0
-        v2_vdd3v3 = self.monitor.voltage2() * self.v2_vdd3v3_scale / 1000.0
-        v3_vdd4v5 = self.monitor.voltage3() * self.v3_vdd4v5_scale / 1000.0
-        v4_vdd_amp = self.monitor.voltage4() * self.v4_vdd_amp_scale / 1000.0
-        v5_vinput = self.monitor.voltage5() * self.v5_vinput_scale / 1000.0
-        v6_imon = self.monitor.voltage6() * self.v6_imon_scale / 1000.0
-        v7_vtune = self.monitor.voltage7() * self.v7_vtune_scale / 1000.0
+        board_temperature = self._monitor.temp0()
+        v0_vdd1v8 = self._monitor.voltage0() * self._v0_vdd1v8_scale / 1000.0
+        v1_vdd3v0 = self._monitor.voltage1() * self._v1_vdd3v0_scale / 1000.0
+        v2_vdd3v3 = self._monitor.voltage2() * self._v2_vdd3v3_scale / 1000.0
+        v3_vdd4v5 = self._monitor.voltage3() * self._v3_vdd4v5_scale / 1000.0
+        v4_vdd_amp = self._monitor.voltage4() * self._v4_vdd_amp_scale / 1000.0
+        v5_vinput = self._monitor.voltage5() * self._v5_vinput_scale / 1000.0
+        v6_imon = self._monitor.voltage6() * self._v6_imon_scale / 1000.0
+        v7_vtune = self._monitor.voltage7() * self._v7_vtune_scale / 1000.0
         if verbose is True:
             print("Board temperature: ", board_temperature)
             print("1.8V supply: ", v0_vdd1v8)
@@ -361,7 +371,7 @@ class CN0566(adf4159, adar1000_array):
         try:
             with open(filename, "rb") as file:
                 self.ccal = pickle.load(file)  # Load gain cal values
-        except Exception:
+        except FileNotFoundError:
             print("file not found, loading default (no channel gain compensation)")
             self.ccal = [0.0] * 2
 
@@ -376,7 +386,7 @@ class CN0566(adf4159, adar1000_array):
         try:
             with open(filename, "rb") as file1:
                 self.gcal = pickle.load(file1)  # Load gain cal values
-        except Exception:
+        except FileNotFoundError:
             print("file not found, loading default (all gain at maximum)")
             self.gcal = [1.0] * 8  # .append(0x7F)
 
@@ -391,11 +401,20 @@ class CN0566(adf4159, adar1000_array):
         try:
             with open(filename, "rb") as file:
                 self.pcal = pickle.load(file)  # Load gain cal values
-        except Exception:
+        except FileNotFoundError:
             print("file not found, loading default (no phase shift)")
             self.pcal = [0.0] * 8
 
     def set_rx_hardwaregain(self, gain, apply_cal=True):
+        """ Set Pluto channel gains
+
+        Parameters
+        ----------
+        gain: type=float
+            Gain to set both channels to
+        apply_cal: type=bool
+            Optionally apply channel gain correction
+        """
         if apply_cal is True:
             self.sdr.rx_hardwaregain_chan0 = int(gain + self.ccal[0])
             self.sdr.rx_hardwaregain_chan1 = int(gain + self.ccal[1])
@@ -405,13 +424,14 @@ class CN0566(adf4159, adar1000_array):
             self.sdr.rx_hardwaregain_chan1 = int(gain)
 
     def set_all_gain(self, value=127, apply_cal=True):
-        """ This will try to set gain of all the channels
+        """ Set all channel gains to a single value
 
         Parameters
         ----------
         value: type=int
-            Value is the value of gain that you want to set for all the channel
-            It is optional and it's default value is 127.
+            gain for all channels. Default value is 127 (maximum).
+        apply_cal: type=bool
+            Optionally apply gain calibration to all channels.
         """
         for i in range(0, 8):
             if apply_cal is True:
@@ -431,6 +451,8 @@ class CN0566(adf4159, adar1000_array):
             It is the index of channel whose gain you want to set
         gain_val: type=int or hex
             gain_val is the value of gain that you want to set
+        apply_cal: type=bool
+            Optionally apply gain calibration for the selected channel
         """
         if apply_cal is True:
             cval = int(gain_val * self.gcal[chan_no])
@@ -465,6 +487,8 @@ class CN0566(adf4159, adar1000_array):
             It is the index of channel whose gain you want to set
         phase_val: float
             phase_val is the value of phase that you want to set
+        apply_cal: type=bool
+            Optionally apply phase calibration
 
         Notes
         -----
@@ -532,8 +556,25 @@ class CN0566(adf4159, adar1000_array):
         self.latch_rx_settings()
 
     def SDR_init(self, SampleRate, TX_freq, RX_freq, Rx_gain, Tx_gain, buffer_size):
-        """Setup contexts"""
-        #        sdr = adi.ad9361(uri=sdr_address)
+        """ Initialize Pluto rev C for operation with the phaser. This is a convenience
+            method that sets several default values, and provides a handle for a few
+            other CN0566 methods that need access (i.e. set_rx_hardwaregain())
+
+        parameters
+        ----------
+        SampleRate: type=int
+            ADC/DAC sample rate.
+        TX_freq: type=float
+            Transmit frequency. lo-sdr.TX_freq is what shows up at the TX connector.
+        RX_freq: type=float
+            Receive frequency. lo-sdr.RX_freq is what shows up at RX outputs.
+        Rx_gain: type=float
+            Receive gain. Set indirectly via set_rx_hardwaregain()
+        Tx_gain: type=float
+            Transmit gain, controls TX output amplitude.
+        buffer_size: type=int
+            Receive buffer size
+        """
         self.sdr._ctrl.debug_attrs[
             "adi,frequency-division-duplex-mode-enable"
         ].value = "1"  # set to fdd mode
@@ -615,6 +656,3 @@ class CN0566(adf4159, adar1000_array):
             q = np.sin(2 * np.pi * t * fc) * 2 ** 15
             iq = 0.9 * (i + 1j * q)
             self.sdr.tx([iq, iq])
-
-
-#        return sdr

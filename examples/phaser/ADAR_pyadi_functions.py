@@ -4,7 +4,6 @@ import pickle
 
 import numpy as np
 
-# MWT: probably better to pass verbosity to each function
 verbose = True
 
 
@@ -36,14 +35,6 @@ def ADAR_init(beam):
     beam.rx_vga_vm_bias_current = 22  # Sets the VGA and vector modulator bias.
 
 
-def ADAR_update_Rx(beam):
-    beam.latch_rx_settings()  # Loads Rx vectors from SPI.  Writes 0x01 to reg 0x28.
-
-
-def ADAR_update_Tx(beam):
-    beam.latch_tx_settings()  # Loads Tx vectors from SPI.  Writes 0x02 to reg 0x28.
-
-
 def ADAR_set_mode(beam, mode):
     if mode == "rx":
         # Configure the device for Rx mode
@@ -62,68 +53,20 @@ def ADAR_set_mode(beam, mode):
             channel.rx_enable = True
 
 
-# MWT: Consider combining Gainx into an array.
-def ADAR_set_Taper(array, Gain1, Gain2, Gain3, Gain4, Gain5, Gain6, Gain7, Gain8):
-    # print("element 1 gcal, val: ", gcal[0], ", ", int(Gain1 * gcal[0]))
-    array.elements.get(1).rx_gain = int(Gain1 * 127 / 100 * gcal[0])
-    # if Gainx=0, then also set the 20dB attenuator (set rx_attenuator to True)
-    array.elements.get(1).rx_attenuator = not bool(Gain1)
-    array.elements.get(2).rx_gain = int(Gain2 * 127 / 100 * gcal[1])
-    array.elements.get(2).rx_attenuator = not bool(Gain2)
-    array.elements.get(3).rx_gain = int(Gain3 * 127 / 100 * gcal[2])
-    array.elements.get(3).rx_attenuator = not bool(Gain3)
-    array.elements.get(4).rx_gain = int(Gain4 * 127 / 100 * gcal[3])
-    array.elements.get(4).rx_attenuator = not bool(Gain4)
-    array.elements.get(5).rx_gain = int(Gain5 * 127 / 100 * gcal[4])
-    array.elements.get(5).rx_attenuator = not bool(Gain5)
-    array.elements.get(6).rx_gain = int(Gain6 * 127 / 100 * gcal[5])
-    array.elements.get(6).rx_attenuator = not bool(Gain6)
-    array.elements.get(7).rx_gain = int(Gain7 * 127 / 100 * gcal[6])
-    array.elements.get(7).rx_attenuator = not bool(Gain7)
-    array.elements.get(8).rx_gain = int(Gain8 * 127 / 100 * gcal[7])
-    array.elements.get(8).rx_attenuator = not bool(Gain8)
+def ADAR_set_Taper(array, gainList):
+    for index, element in enumerate(array.elements.values()):
+        element.rx_gain = int(gainList[index] * 127 / 100 * gcal[index])
+        element.rx_attenuator = not bool(gainList[index])
     array.latch_rx_settings()
 
 
-# MWT: Consider combining phasex into an array.
-def ADAR_set_Phase(
-    array,
-    PhDelta,
-    phase_step_size,
-    phase1,
-    phase2,
-    phase3,
-    phase4,
-    phase5,
-    phase6,
-    phase7,
-    phase8,
-):
-    step_size = phase_step_size  # 2.8125
-    array.elements.get(1).rx_phase = (
-        (np.rint(PhDelta * 0 / step_size) * step_size) + phase1 + pcal[0]
-    ) % 360
-    array.elements.get(2).rx_phase = (
-        (np.rint(PhDelta * 1 / step_size) * step_size) + phase2 + pcal[1]
-    ) % 360
-    array.elements.get(3).rx_phase = (
-        (np.rint(PhDelta * 2 / step_size) * step_size) + phase3 + pcal[2]
-    ) % 360
-    array.elements.get(4).rx_phase = (
-        (np.rint(PhDelta * 3 / step_size) * step_size) + phase4 + pcal[3]
-    ) % 360
-    array.elements.get(5).rx_phase = (
-        (np.rint(PhDelta * 4 / step_size) * step_size) + phase5 + pcal[4]
-    ) % 360
-    array.elements.get(6).rx_phase = (
-        (np.rint(PhDelta * 5 / step_size) * step_size) + phase6 + pcal[5]
-    ) % 360
-    array.elements.get(7).rx_phase = (
-        (np.rint(PhDelta * 6 / step_size) * step_size) + phase7 + pcal[6]
-    ) % 360
-    array.elements.get(8).rx_phase = (
-        (np.rint(PhDelta * 7 / step_size) * step_size) + phase8 + pcal[7]
-    ) % 360
+def ADAR_set_Phase(array, PhDelta, phase_step_size, phaseList):
+    for index, element in enumerate(array.elements.values()):
+        element.rx_phase = (
+            (np.rint(PhDelta * index / phase_step_size) * phase_step_size)
+            + phaseList[index]
+            + pcal[index]
+        ) % 360
     array.latch_rx_settings()
 
 
@@ -136,7 +79,7 @@ def load_gain_cal(filename="gain_cal_val.pkl"):
     try:
         with open(filename, "rb") as file1:
             return pickle.load(file1)  # Load gain cal values
-    except:
+    except FileNotFoundError:
         print("file not found, loading default (all gain at maximum)")
         return [1.0] * 8  # .append(0x7F)
 
@@ -151,7 +94,7 @@ def load_phase_cal(filename="phase_cal_val.pkl"):
     try:
         with open(filename, "rb") as file:
             return pickle.load(file)  # Load gain cal values
-    except:
+    except FileNotFoundError:
         print("file not found, loading default (no phase shift)")
         return [0.0] * 8  # .append(0)  # if it fails load default value i.e. 0
 

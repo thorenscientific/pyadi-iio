@@ -190,8 +190,7 @@ class App:
             ADAR_set_mode(
                 device, "rx"
             )  # configures for rx or tx.  And sets the LNAs for Receive mode or the PA's for Transmit mode
-        ADAR_set_Taper(
-            self.array,
+        gainList = [
             self.RxGain1,
             self.RxGain2,
             self.RxGain3,
@@ -200,7 +199,8 @@ class App:
             self.RxGain6,
             self.RxGain7,
             self.RxGain8,
-        )
+        ]
+        ADAR_set_Taper(self.array, gainList)
 
         master.protocol(
             "WM_DELETE_WINDOW", self.closeProgram
@@ -1743,7 +1743,6 @@ class App:
             int(self.ConvertPhaseToSteerAngle(self.max_PhDelta)),
             " deg",
         )
-        # ADAR_set_Phase(self.array, self.max_PhDelta, 2.8125, self.RxPhase1, self.RxPhase2, self.RxPhase3, self.RxPhase4, self.RxPhase5, self.RxPhase6, self.RxPhase7, self.RxPhase8)
         i = 0
         # start=time.time()
         if (
@@ -1764,10 +1763,7 @@ class App:
         )
 
     def track(self, PhDelta):
-        ADAR_set_Phase(
-            self.array,
-            self.max_PhDelta,
-            2.8125,
+        phaseList = [
             self.RxPhase1,
             self.RxPhase2,
             self.RxPhase3,
@@ -1776,7 +1772,8 @@ class App:
             self.RxPhase6,
             self.RxPhase7,
             self.RxPhase8,
-        )
+        ]
+        ADAR_set_Phase(self.array, self.max_PhDelta, 2.8125, phaseList)
         (
             PeakValue_sum,
             PeakValue_delta,
@@ -1838,8 +1835,7 @@ class App:
             self.RxGain6 = g6
             self.RxGain7 = g7
             self.RxGain8 = g8
-            ADAR_set_Taper(
-                self.array,
+            gainList = [
                 self.RxGain1,
                 self.RxGain2,
                 self.RxGain3,
@@ -1848,7 +1844,8 @@ class App:
                 self.RxGain6,
                 self.RxGain7,
                 self.RxGain8,
-            )
+            ]
+            ADAR_set_Taper(self.array, gainList)
 
     def programLO(self):
         if self.SignalFreq != int(self.freq.get() * 1e9):
@@ -2062,22 +2059,21 @@ class App:
         self.RxPhase6 = self.Rx6Phase_set.get() + self.Rx6_cal
         self.RxPhase7 = self.Rx7Phase_set.get() + self.Rx7_cal
         self.RxPhase8 = self.Rx8Phase_set.get() + self.Rx8_cal
+
+        phaseList = [
+            self.RxPhase1,
+            self.RxPhase2,
+            self.RxPhase3,
+            self.RxPhase4,
+            self.RxPhase5,
+            self.RxPhase6,
+            self.RxPhase7,
+            self.RxPhase8,
+        ]
         for PhDelta in PhaseValues:
             # if self.refresh.get()==1:
             # time.sleep((self.update_time.get()/1000)/100)
-            ADAR_set_Phase(
-                self.array,
-                PhDelta,
-                phase_step_size,
-                self.RxPhase1,
-                self.RxPhase2,
-                self.RxPhase3,
-                self.RxPhase4,
-                self.RxPhase5,
-                self.RxPhase6,
-                self.RxPhase7,
-                self.RxPhase8,
-            )
+            ADAR_set_Phase(self.array, PhDelta, phase_step_size, phaseList)
             # self.array.devices[1].generate_clocks()
             # gpios.gpio_rx_load = 1  # RX_LOAD for ADAR1000 RAM access
             # gpios.gpio_rx_load = 0  # RX_LOAD for ADAR1000 RAM access

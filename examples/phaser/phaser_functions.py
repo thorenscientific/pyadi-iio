@@ -57,12 +57,15 @@ from scipy import signal
 
 
 def to_sup(angle):
+    """ Return suplimentary angle if greater than 180 degrees. """
     if angle > 180.0:
         angle -= 360.0
     return angle
 
 
 def find_peak_bin(cn0566, verbose=False):
+    """ Simple function to find the peak frequency bin of the incoming signal.
+        sets nomial phases and gains first."""
     win = np.blackman(cn0566.sdr.rx_buffer_size)
     # First, locate fundamental.
     cn0566.set_all_gain(127)
