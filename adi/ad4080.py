@@ -33,21 +33,7 @@ class ad4080(rx, context_manager):
 
         rx.__init__(self)
 
-    @property
-    def test_mode(self):
-        """test_mode: Select Test Mode. Options are:
-        off midscale_short pos_fullscale neg_fullscale checkerboard pn_long pn_short one_zero_toggle user ramp"""
-        return self._get_iio_attr_str("voltage0", "test_mode", False)
 
-    @test_mode.setter
-    def test_mode(self, value):
-        self._set_iio_attr_str("voltage0", "test_mode", False, value, self._rxadc)
-
-    @property
-    def test_mode_available(self):
-        """test_mode_available: Options are:
-        off midscale_short pos_fullscale neg_fullscale checkerboard pn_long pn_short one_zero_toggle user ramp"""
-        return self._get_iio_attr_str("voltage0", "test_mode_available", False)
 
     @property
     def scale(self):
@@ -62,4 +48,60 @@ class ad4080(rx, context_manager):
     @property
     def sampling_frequency(self):
         """sampling_frequency: Sampling frequency value"""
-        return self._get_iio_attr("voltage0", "sampling_frequency", False)
+        return self._get_iio_dev_attr("sampling_frequency")
+
+
+    @property
+    def sinc_dec_rate_available(self):
+        """"""
+        return self._get_iio_dev_attr("sinc_dec_rate_available", False)
+
+    @property
+    def sinc_dec_rate(self):
+        """"""
+        return self._get_iio_dev_attr("sinc_dec_rate", False)
+
+    @sinc_dec_rate.setter
+    def sinc_dec_rate(self, value):
+        self._set_iio_dev_attr("sinc_dec_rate", value)
+
+    @property
+    def filter_sel_available(self):
+        """"""
+        return self._get_iio_dev_attr_str("filter_sel_available", False)
+
+    @property
+    def filter_sel(self):
+        """"""
+        return self._get_iio_dev_attr_str("filter_sel", False)
+
+    @filter_sel.setter
+    def filter_sel(self, value):
+        self._set_iio_dev_attr_str("filter_sel", value)
+
+
+    # @property
+    # def (self):
+    #     """"""
+    #     return self._get_iio_dev_attr("", False)
+
+    # @.setter
+    # def (self, value):
+    #     self._set_iio_dev_attr("", value)
+
+
+    # @property
+    # def test_mode(self):
+    #     """test_mode: Select Test Mode. Options are:
+    #     off midscale_short pos_fullscale neg_fullscale checkerboard pn_long pn_short one_zero_toggle user ramp"""
+    #     return self._get_iio_dev_attr("test_mode", False)
+
+    # @test_mode.setter
+    # def test_mode(self, value):
+    #     self._set_iio_attr_str("test_mode", False, value, self._rxadc)
+
+    # @property
+    # def test_mode_available(self):
+    #     """test_mode_available: Options are:
+    #     off midscale_short pos_fullscale neg_fullscale checkerboard pn_long pn_short one_zero_toggle user ramp"""
+    #     return self._get_iio_dev_attr("test_mode_available")

@@ -45,7 +45,7 @@ print("uri: " + str(my_uri))
 my_adc = ad4080(uri=my_uri, device_name="ad4080")
 
 print("Sampling frequency: ", my_adc.sampling_frequency)
-print("Test mode: ", my_adc.test_mode)
+# print("Test mode: ", my_adc.test_mode)
 print("Scale: ", my_adc.scale)
 
 plt.clf()
@@ -64,3 +64,4 @@ plt.legend(
 )
 
 plt.show()
+del my_adc
