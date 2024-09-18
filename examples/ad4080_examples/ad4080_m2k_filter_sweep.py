@@ -17,15 +17,16 @@ from adi import ad4080
 # else use default ip:analog.local
 my_uri = sys.argv[1] if len(sys.argv) >= 2 else "ip:analog.local"
 
-my_uri = "serial:COM5,230400,8n1n"
+my_uri = "serial:COM6,230400,8n1n"
 
 print("uri: " + str(my_uri))
 
 my_adc = ad4080(uri=my_uri, device_name="ad4080")
 
+# Fix this later - appears there's some things in flux...
 # print("Sampling frequency: ", my_adc.sampling_frequency)
 
-
+sampling_frequency = 40000000.0 # hack for now
 
 print("sinc_dec_rate_available: ", my_adc.sinc_dec_rate_available)
 print("filter_sel_available: ", my_adc.filter_sel_available)
@@ -78,7 +79,7 @@ fs = []
 amps = []
 vref = 5.0
 
-for f in range(10000, 1000000, 10000): # Sweep 3kHz to 300kHz in 1kHz steps
+for f in range(10000, 1000000, 20000): # Sweep 3kHz to 300kHz in 1kHz steps
 
     #call buffer generator, returns sample rate and buffer
     samp0,buffer0 = sine_buffer_generator(0,f,0.5,1.5,180)
@@ -122,7 +123,7 @@ plt.ylabel("Voltage (V)")
 plt.show()
 
 f, Pxx_spec = signal.periodogram(
-    ac, my_adc.sampling_frequency, window="flattop", scaling="spectrum"
+    ac, 40000000.0, window="flattop", scaling="spectrum"
 )
 Pxx_abs = np.sqrt(Pxx_spec)
 
