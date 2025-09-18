@@ -17,7 +17,7 @@ from adi import ad4080
 # else use default ip:analog.local
 my_uri = sys.argv[1] if len(sys.argv) >= 2 else "ip:analog.local"
 
-my_uri = "serial:COM6,230400,8n1n"
+# my_uri = "serial:COM16,230400,8n1n"
 
 print("uri: " + str(my_uri))
 
@@ -28,20 +28,21 @@ my_adc = ad4080(uri=my_uri, device_name="ad4080")
 
 sampling_frequency = 40000000.0 # hack for now
 
-print("sinc_dec_rate_available: ", my_adc.sinc_dec_rate_available)
-print("filter_sel_available: ", my_adc.filter_sel_available)
+print("oversampling_ratio_available: ", my_adc.oversampling_ratio_available)
+print("filter_type_available: ", my_adc.filter_type_available)
 
 print("Setting filter to SINC5, decimation 128")
-my_adc.sinc_dec_rate = 128
+my_adc.oversampling_ratio = 128
 # my_adc.filter_sel = "sinc5_plus_compensation"
-my_adc.filter_sel = "sinc5"
-print("Verifying...")
-print("sinc_dec_rate: ", my_adc.sinc_dec_rate)
-print("filter_sel: ", my_adc.filter_sel)
+my_adc.filter_type = "sinc5"
+print("Verifying... read back filter type: ", my_adc.filter_type)
+
+print("sinc_dec_rate: ", my_adc.oversampling_ratio)
+print("filter_sel: ", my_adc.filter_type)
 
 
 
-print("Scale: ", my_adc.scale)
+# print("Scale: ", my_adc.scale)
 
 print(dir(my_adc))
 
