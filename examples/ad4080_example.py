@@ -67,4 +67,4 @@ plt.legend(
 
 plt.show()
 
-del my_adc
+# del my_adc
