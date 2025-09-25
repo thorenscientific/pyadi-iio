@@ -2,6 +2,8 @@
 #
 # SPDX short identifier: ADIBSD
 
+
+
 import libm2k
 import adi
 from sys import exit
@@ -27,16 +29,6 @@ fs_in  = 40000000 # Received waveform sample rate. AD4080 fixed at 40Msps
 fsr = 2.0             # Full-scale range in Volts
 fund_freq = 100000.0  # Hz
 
-# This is a list of the amplitudes (in dBfs) of the fundamental (first element)
-# and harmonics. You can add more harmonics to the list, but we'll start
-# out with just the 2nd, 3rd, and 4th.
-harm_dbfs = [-3.0, -23.0, -20.0, -20.0]
-
-# These are lists of the frequencies (Hz) and amplitudes (in dBfs) of
-# interfering tones or "noise tones". Genalyzer will interpret them as not
-# harmonically related and add them to the total noise.
-noise_freqs = [150000.0, 250000.0, 350000.0, 450000.0]
-noise_dbfs = [-40, -60, -70, -50]
 
 # FFT parameters
 window = gn.Window.BLACKMAN_HARRIS  # FFT window
@@ -71,30 +63,13 @@ print(f'Sampling frequency: {my_ad4080.sampling_frequency}')
 # print(f'Available sampling frequencies: {my_ad4080.sampling_frequency_available}') # not in ad4080 class yet
 assert my_ad4080.sampling_frequency == fs_in # Check 40Msps assumption
 
-# 2. Generate waveform containing both the wanted signal and some noise
-
-# Convert dBfs to amplitudes for both harmonics and noise
-harm_ampl = [(fsr / 2) * 10 ** (x / 20) for x in harm_dbfs]
-noise_ampl = [(fsr / 2) * 10 ** (x / 20) for x in noise_dbfs]
 
 # Nudge fundamental to the closest coherent bin
 fund_freq = gn.coherent(nfft, fs_out, fund_freq)
 
 # Build up the signal from the fundamental, harmonics, and noise tones
-awf = np.zeros(npts)
 
-for harmonic in range(len(harm_dbfs)):
-    freq = fund_freq * (harmonic + 1)
-    print(f"Frequency: {freq} ({harm_dbfs[harmonic]} dBfs)")
-
-    awf += gn.cos(npts, fs_out, harm_ampl[harmonic], freq, 0, 0, 0)
-
-for tone in range(len(noise_freqs)):
-    freq = noise_freqs[tone]
-    freq = gn.coherent(nfft, fs_out, noise_freqs[tone])
-
-    print(f"Noise Frequency: {freq} ({noise_dbfs[tone]} dBfs)")
-    awf += gn.cos(npts, fs_out, noise_ampl[tone], freq, 0, 0, 0)
+awf = gn.cos(npts, fs_out, fsr, fund_freq, 0, 0, 0)
 
 # 3. Transmit generated waveform
 aout.push([awf]) # Would be [awf0, awf1] if sending data to multiple channels
@@ -103,10 +78,25 @@ aout.push([awf]) # Would be [awf0, awf1] if sending data to multiple channels
 data_in_raw = my_ad4080.rx()
 
 # Convert ADC codes to Volts
-data_in = data_in_raw * my_ad4080.channel[0].scale / 1e6 # Scale is in microvolts/code
+data_in = data_in_raw * my_ad4080.channel[0].scale / 1e3 # Scale is in millivolts/code
 
 # 5. Analyze recorded waveform
-workshop.fourier_analysis(data_in, fundamental = fund_freq, sampling_rate = fs_in, window = window)
+fft_results = workshop.fourier_analysis(data_in, fundamental = fund_freq, sampling_rate = fs_in, window = window)
+
+failed_tests = []
+
+if (- 5.0 < fft_results['A:mag_dbfs'] < -2.0) is False:
+    failed_tests.append("Failed full-scale amplitude")
+if (55.0 < fft_results['snr'] < 70.0) is False:
+    failed_tests.append("Failed SNR")
+if (55.0 < fft_results['sinad'] < 70.0) is False:
+    failed_tests.append("Failed SINAD")
+
+if len(failed_tests) == 0:
+    print("WooHoo, board passes!")
+else:
+    print("D'oh! Board fails these test(s)")
+    print(failed_tests)
 
 
-# del my_ad4080
+del my_ad4080
