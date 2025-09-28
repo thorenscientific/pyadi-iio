@@ -12,11 +12,54 @@ from adi.rx_tx import rx
 
 
 class ad7124(rx, context_manager):
-    """ AD7124 ADC """
+    """ AD7124 4/8 -Channel, Low Noise, Low Power, 24-Bit, Sigma-Delta ADC with PGA and Reference
+
+    Analog input configuration (single-ended, differential, unipolar, bipolar) is set in
+    the device tree. This class scans all channels and creates both:
+        * a channel[] list attribute
+        * individual channel attributes, for example:
+            * my_ad7124.temp (temperature sensor)
+            * my_ad7124.voltage0_voltage1 (differential input between inputs 0 and 1)
+
+    The ad7124.enable_single_cycle device attribute defaults to 'Y', and ensures that when
+    a single channel is enabled, output data is fully settled; intermediate, unsettled outputs
+    from the digital filter are ignored. Setting to 'N' includes these unsettled samples,
+    increasing the output data rate accordignly.
+
+    Each channel has the following sub-attributes:
+        voltageX_voltageY.raw:              Raw 12-bit ADC code. read only for ADC channels
+        voltageX_voltageY.scale:            ADC scale, millivolts per lsb
+        voltageX_voltageY.scale_available:  Available scales, corresponding to Vref*1, Vref*2
+        voltageX_voltageY():                Returns ADC reading in millivolts (read only)
+
+        voltageX_voltageY.filter_type_available: List available filter types
+        voltageX_voltageY.filter_type:           set / get filter type
+        voltageX_voltageY.sampling_frequency:  set / get sampling frequency.
+                                               Available values are dependent on filter type,
+                                               and overall sample rate dependent on all other
+                                               channels.
+        voltageX_voltageY.scale_available: List available scales
+        voltageX_voltageY.scale:           set / get scale
+        voltageX_voltageY.
+
+    The temperature channel is the same, with these exceptions:
+        temp.scale:                    Does not have a setter
+        temp.scale_available           Does not apply (raises error)
+        temp():                        Returns temperature in degrees Celsius\n
+
+    """
 
     _complex_data = False
     channel = []  # type: ignore
     _device_name = ""
+
+    def __repr__(self):
+        retstr = f"""
+ad5592r(uri="{self.uri}, device_name={self._device_name})"
+
+{self.__doc__}
+"""
+        return retstr
 
     def __init__(self, uri="", device_index=0):
 
@@ -38,29 +81,26 @@ class ad7124(rx, context_manager):
                     index += 1
 
         self._rx_channel_names = [chan.id for chan in self._ctrl.channels]
-        if "-" in self._rx_channel_names[0]:
-            self._rx_channel_names.sort(key=lambda x: int(x[7:].split("-")[0]))
-        else:
-            self._rx_channel_names.sort(key=lambda x: int(x[7:]))
 
         for name in self._rx_channel_names:
-            self.channel.append(self._channel(self._ctrl, name))
+            if name == "temp":
+                self.channel.append(self._temp_channel(self._ctrl, name))
+                setattr(
+                    self, name.replace("-", "_"), self._temp_channel(self._ctrl, name)
+                )
+            else:
+                self.channel.append(self._channel(self._ctrl, name))
+                setattr(self, name.replace("-", "_"), self._channel(self._ctrl, name))
         rx.__init__(self)
 
     @property
-    def sample_rate(self):
-        """Sets sampling frequency of the AD7124"""
-        return self._get_iio_attr(self.channel[0].name, "sampling_frequency", False)
+    def enable_single_cycle(self):
+        """Sets single cycle mode (no latency, even with only one channel enabled)"""
+        return self._get_iio_debug_attr_str("enable_single_cycle", self._ctrl)
 
-    @sample_rate.setter
-    def sample_rate(self, value):
-        for ch in self.channel:
-            self._set_iio_attr(ch.name, "sampling_frequency", False, value)
-
-    @property
-    def scale_available(self):
-        """Provides all available scale(gain) settings for the AD7124 channels"""
-        return self._get_iio_attr(self.channel[0].name, "scale_available", False)
+    @enable_single_cycle.setter
+    def enable_single_cycle(self, value):
+        self._set_iio_debug_attr_str("enable_single_cycle", value, self._ctrl)
 
     class _channel(attribute):
         """AD7124 channel"""
@@ -73,6 +113,32 @@ class ad7124(rx, context_manager):
         def raw(self):
             """AD7124 channel raw value"""
             return self._get_iio_attr(self.name, "raw", False)
+
+        @property
+        def filter_type_available(self):
+            """Provides all available filter types for the selected channel"""
+            return self._get_iio_attr_str(self.name, "filter_type_available", False)
+
+        @property
+        def filter_type(self):
+            """AD7124 channel filter type"""
+            return self._get_iio_attr_str(self.name, "filter_type", False)
+
+        @filter_type.setter
+        def filter_type(self, ftype):
+            """Set filter type."""
+            if ftype in self.filter_type_available:
+                self._set_iio_attr(self.name, "filter_type", False, ftype)
+            else:
+                raise ValueError(
+                    "Error: Filter type not supported \nUse one of: "
+                    + str(self.filter_type_available)
+                )
+
+        @property
+        def scale_available(self):
+            """Provides all available scale(gain) settings for the selected channel"""
+            return self._get_iio_attr(self.name, "scale_available", False)
 
         @property
         def scale(self):
@@ -88,21 +154,73 @@ class ad7124(rx, context_manager):
             """AD7124 channel offset"""
             return self._get_iio_attr(self.name, "offset", False)
 
-        @offset.setter
-        def offset(self, value):
-            self._get_iio_attr(self.name, "offset", False, value)
+        # @offset.setter
+        # def offset(self, value):
+        #     self._set_iio_attr(self.name, "offset", False, value)
 
-    def to_volts(self, index, val):
-        """Converts raw value to SI"""
-        _scale = self.channel[index].scale
-        _offset = self.channel[index].offset
+        @property
+        def sampling_frequency(self):
+            """Sets sampling frequency of the selected channel"""
+            return self._get_iio_attr(self.name, "sampling_frequency", False)
 
-        ret = None
+        @sampling_frequency.setter
+        def sampling_frequency(self, value):
+            self._set_iio_attr(self.name, "sampling_frequency", False, value)
 
-        if isinstance(val, np.int16):
-            ret = val * _scale + _offset
+        @property
+        def sys_calibration_mode_available(self):
+            """Returns state of calibration mode"""
+            return self._get_iio_attr_str(
+                self.name, "sys_calibration_mode_available", False
+            )
 
-        if isinstance(val, np.ndarray):
-            ret = [x * _scale + _offset for x in val]
+        @property
+        def sys_calibration_mode(self):
+            """Returns state of calibration mode"""
+            return self._get_iio_attr_str(self.name, "sys_calibration_mode", False)
 
-        return ret
+        @sys_calibration_mode.setter
+        def sys_calibration_mode(self, value):
+            raise AttributeError("ToDo: Implement and test calibration modes")
+
+        @sys_calibration_mode.setter
+        def sys_calibration_mode(self, ftype):
+            """Set filter type."""
+            if ftype in self.sys_calibration_mode_available:
+                self._set_iio_attr(self.name, "sys_calibration_mode", False, ftype)
+            else:
+                raise ValueError(
+                    "Error: This calibration mode not supported \nUse one of: "
+                    + str(self.sys_calibration_mode_available)
+                )
+
+        @property
+        def sys_calibration(self, value):
+            """Returns state of calibration mode"""
+            pass
+
+        @sys_calibration.setter
+        def sys_calibration(self, value):
+            raise AttributeError("ToDo: Implement and test calibration modes")
+
+        def __call__(self, mV=None):
+            """Convenience function, get temperature in SI units (millivolts)"""
+            return (self.raw + self.offset) * self.scale
+
+    class _temp_channel(_channel):
+        @property
+        def scale_available(self):
+            raise AttributeError("scale_available not applicable to temp channel")
+
+        @property
+        def scale(self):
+            """AD7124 temperature scale, needs to be repeated here so we can override the setter"""
+            return float(self._get_iio_attr_str(self.name, "scale", False))
+
+        @scale.setter
+        def scale(self, value):
+            raise AttributeError("scale not applicable to temp channel")
+
+        def __call__(self, mV=None):
+            """Convenience function, get temperature in SI units (Degrees C)"""
+            return ((self.raw + self.offset) * self.scale) / 1000
