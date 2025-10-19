@@ -11,7 +11,7 @@ import adi
 
 # Optionally pass URI as command line argument,
 # else use default context manager search
-my_uri = sys.argv[1] if len(sys.argv) >= 2 else None
+my_uri = sys.argv[1] if len(sys.argv) >= 2 else "ip:analog.local"
 print("uri: " + str(my_uri))
 
 # Instantiate CN0554 object

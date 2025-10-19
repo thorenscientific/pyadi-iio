@@ -4,6 +4,8 @@
 
 import argparse
 
+import time
+
 import matplotlib.pyplot as plt
 
 import adi
@@ -28,8 +30,42 @@ print("uri: " + str(my_uri))
 
 my_ad7124 = adi.ad7124(uri=my_uri)
 
-print("Welcome to the ad7124 example script, where the local temperature is ",
-      my_ad7124.temp(), " degrees C.")
+my_ad7124.rx_destroy_buffer()
+
+for i in range(0,len(my_ad7124.channel)):
+    my_ad7124.channel[i].sampling_frequency = 4800
+
+print(
+    "Welcome to the ad7124 example script, where the local temperature is ",
+    my_ad7124.temp(),
+    " degrees C.",
+)
+
+print("Now reading out all raw channels...")
+
+for i in range(0,len(my_ad7124.channel)):
+    print("Channel ", i, ":  ", my_ad7124.channel[i].raw)
+
+time.sleep(0.1)
+
+
+my_ad7124.rx_enabled_channels = [1, 2, 3, 4, 5, 6, 7, 8]
+
+
+time.sleep(0.1)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ad_channel0 = 1  # voltage0-voltage1 plug to CH1 on my m2k
 ad_channel1 = 2  # voltage2-voltage3 plug to CH2 on my m2k
@@ -55,10 +91,14 @@ data = my_ad7124.rx()
 print(data)
 
 plt.figure(1)
-plt.title(f"{my_ad7124._ctrl.name} @{my_ad7124.channel[ad_channel0].sampling_frequency}sps")
+plt.title(
+    f"{my_ad7124._ctrl.name} @{my_ad7124.channel[ad_channel0].sampling_frequency}sps"
+)
 plt.ylabel("Volts")
 plt.xlabel("Sample Number")
-plt.plot(data[0], label=my_ad7124.channel[ad_channel0].name, color="orange", linewidth=2)
+plt.plot(
+    data[0], label=my_ad7124.channel[ad_channel0].name, color="orange", linewidth=2
+)
 plt.plot(data[1], label=my_ad7124.channel[ad_channel1].name, color="blue", linewidth=2)
 plt.show()
 

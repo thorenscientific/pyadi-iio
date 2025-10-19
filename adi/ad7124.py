@@ -180,14 +180,10 @@ ad5592r(uri="{self.uri}, device_name={self._device_name})"
             return self._get_iio_attr_str(self.name, "sys_calibration_mode", False)
 
         @sys_calibration_mode.setter
-        def sys_calibration_mode(self, value):
-            raise AttributeError("ToDo: Implement and test calibration modes")
-
-        @sys_calibration_mode.setter
-        def sys_calibration_mode(self, ftype):
+        def sys_calibration_mode(self, calmode):
             """Set filter type."""
-            if ftype in self.sys_calibration_mode_available:
-                self._set_iio_attr(self.name, "sys_calibration_mode", False, ftype)
+            if calmode in self.sys_calibration_mode_available:
+                self._set_iio_attr(self.name, "sys_calibration_mode", False, calmode)
             else:
                 raise ValueError(
                     "Error: This calibration mode not supported \nUse one of: "
@@ -195,13 +191,17 @@ ad5592r(uri="{self.uri}, device_name={self._device_name})"
                 )
 
         @property
-        def sys_calibration(self, value):
+        def sys_calibration(self):
             """Returns state of calibration mode"""
-            pass
+            raise AttributeError(
+                "sys_calibration is write only; write 1 to calibrate.\
+                                  This is a self-clear bit"
+            )
 
         @sys_calibration.setter
-        def sys_calibration(self, value):
-            raise AttributeError("ToDo: Implement and test calibration modes")
+        def sys_calibration(self, cal):
+            # accept any argument, 1 is the only valid value.
+            self._set_iio_attr(self.name, "sys_calibration", False, 1)
 
         def __call__(self, mV=None):
             """Convenience function, get temperature in SI units (millivolts)"""
