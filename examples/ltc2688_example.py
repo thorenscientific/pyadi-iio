@@ -30,7 +30,7 @@ dither_channels = [0, 3]
 
 # Device initialization
 try:
-    myDAC = adi.ltc2688(uri="ip:169.254.8.72")
+    myDAC = adi.ltc2688(uri="ip:analog.local")
 
     for ch in myDAC.channel_names:
         ch_object = eval("myDAC." + str(ch))
