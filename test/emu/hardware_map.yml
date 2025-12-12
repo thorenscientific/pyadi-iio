@@ -520,6 +520,14 @@ adf4377:
       - data_devices:
           - iio:device0
 
+ltc2378-20:
+  - ltc2378
+  - pyadi_iio_class_support:
+      - ltc2378
+  - emulate:
+      - filename: ltc2378.xml
+      - data_devices:
+          - iio:device0
 
 ltc2387:
   - ltc2387
@@ -747,6 +755,32 @@ ad738x:
       - filename: ad7381.xml
       - data_devices:
           - iio:device0
+hmc7044:
+  - hmc7044
+  - pyadi_iio_class_support:
+      - hmc7044
+  - emulate:
+      - filename: ad9084-fmca-ebz.xml
+      - data_devices:
+          - iio:device1
+
+adf4030:
+  - adf4030
+  - pyadi_iio_class_support:
+      - adf4030
+  - emulate:
+      - filename: ad9084-fmca-ebz.xml
+      - data_devices:
+          - iio:device10
+
+axi_aion_trig:
+  - axi_aion_trig
+  - pyadi_iio_class_support:
+      - axi_aion_trig
+  - emulate:
+      - filename: ad9084-fmca-ebz.xml
+      - data_devices:
+          - iio:device11
 
 ad4080:
  - ad4080
@@ -763,5 +797,30 @@ ad7490:
       - ad7490
   - emulate:
       - filename: ad7490.xml
+      - data_devices:
+          - iio:device0
+ada4355:
+  - ada4355
+  - pyadi_iio_class_support:
+      - ada4355
+  - emulate:
+      - filename: ada4355.xml
+      - data_devices:
+          - iio:device2
+          
+ad5710r:
+  - ad5710r
+  - pyadi_iio_class_support:
+      - ad5710r
+  - emulate:
+      - filename: ad5710r.xml
+      - data_devices:
+          - iio:device0
+ad7405:
+  - adum7701
+  - pyadi_iio_class_support:
+      - ad7405
+  - emulate:
+      - filename: ad7405.xml
       - data_devices:
           - iio:device0
