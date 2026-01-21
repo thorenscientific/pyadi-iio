@@ -20,6 +20,9 @@ beta test.
 
 import argparse
 import adi
+import gc
+import matplotlib.pyplot as plt
+from time import sleep
 
 # Optionally pass URI as command line argument, else use analog.local
 # (URI stands for "Uniform Resource Identifier")
@@ -44,9 +47,9 @@ print("uri: " + str(my_uri))
 # Instantiate and connect to our AD5592r
 # while the "my_" prefix might sound a little childish, it's a reminder that
 # it represents the physical chip that is in front of you.
-my_ad5592r = adi.ad5592r(uri=my_uri)
-my_ad5593r = adi.ad5592r(uri=my_uri)
-my_gpios = adi.one_bit_adc_dac(uri=my_uri)
+# my_ad5592r = adi.ad5592r(uri=my_uri)
+# my_ad5593r = adi.ad5592r(uri=my_uri, device_name="ad5593r")
+
 my_lm75 = adi.lm75(uri=my_uri)
 
 
@@ -70,6 +73,12 @@ my_lm75.max_hyst = my_lm75.to_millidegrees(25.0)
 print("New thresholds:")
 print("Max: " + str(my_lm75.to_degrees(my_lm75.max)))
 print("Max hysteresis: " + str(my_lm75.to_degrees(my_lm75.max_hyst)))
+
+
+del my_lm75
+gc.collect()
+sleep(3.0)
+my_gpios = adi.one_bit_adc_dac(uri=my_uri)
 
 # Set outputs...
 print("Setting GPIO outputs to initial state...")
@@ -131,11 +140,13 @@ else:
     
 
 
+del my_gpios
+gc.collect()
+sleep(3.0)
+my_ad5592r = adi.ad5592r(uri=my_uri)
 
 
 
-
-"""
 # Define a few constants, according to curve tracer circuit
 Rsense = 47.0  # 47 Ohms
 Rbase = 47.0e3  # 47 kOhms
@@ -189,4 +200,7 @@ for curve in range(0, len(curves)):  # Iterate through curves
     # plot() method arguments are X values, y values, with optional parameters after.
     plt.plot(curves[curve][vcs_index], curves[curve][ics_index])
 plt.show()  # Self-explanatory :)
-"""
+
+
+del my_ad5592r
+gc.collect()

@@ -76,11 +76,11 @@ ad5592r(uri="{self.uri}, device_name={self._device_name})"
             if name == "temp":
                 setattr(self, name, self._channel_temp(self._ctrl, name, output))
             else:
-                if output is True:
+                if output is True and "voltage" in name:
                     setattr(
                         self, name + "_dac", self._channel_dac(self._ctrl, name, output)
                     )
-                else:
+                if output is False and "voltage" in name:
                     self._rx_channel_names.append(name)
                     self.channel.append(self._channel_adc(self._ctrl, name, output))
                     setattr(

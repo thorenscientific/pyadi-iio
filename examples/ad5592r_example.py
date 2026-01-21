@@ -12,7 +12,7 @@ import adi
 # but you must run as root (sudo) because we are writing as well as reading
 my_uri = sys.argv[1] if len(sys.argv) >= 2 else "ip:analog.local"
 print("uri: " + str(my_uri))
-
+my_uri = "serial:COM14,230400,8n1"
 # Set up AD5592R/AD5593R
 my_ad5592r = adi.ad5592r(uri=my_uri, device_name="ad5592r")
 
