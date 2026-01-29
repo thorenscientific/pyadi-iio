@@ -3,28 +3,34 @@
 # SPDX short identifier: ADIBSD
 # Author: Ioan Dragomir (ioan.dragomir@analog.com)
 
-import libm2k
-import genalyzer as gn
-import numpy as np
-import workshop
 import argparse
 from time import sleep
 
+import genalyzer as gn
+import libm2k
+import numpy as np
+import workshop
+
 parser = argparse.ArgumentParser(
-    description='Generate a noisy signal on the M2K, record it using the AD4080ARDZ, and do a Fourier analysis.')
-parser.add_argument('-m', '--m2k-uri', default='ip:m2k.local',
-    help='LibIIO context URI of the ADALM2000')
+    description="Generate a noisy signal on the M2K, record it using the AD4080ARDZ, and do a Fourier analysis."
+)
+parser.add_argument(
+    "-m",
+    "--m2k-uri",
+    default="ip:m2k.local",
+    help="LibIIO context URI of the ADALM2000",
+)
 args = vars(parser.parse_args())
 
 # 0. Configuration
 
 # Input and output will be done at different sampling frequencies
 # Need to make sure we're not mixing these up later!
-fs_in  = 100000
+fs_in = 100000
 fs_out = 750000
 
 # Tone parameters
-fsr = 2.0            # Full-scale range in Volts
+fsr = 2.0  # Full-scale range in Volts
 fund_freq = 10000.0  # Hz
 
 # This is a list of the amplitudes (in dBfs) of the fundamental (first element)
@@ -40,12 +46,12 @@ noise_dbfs = [-40, -60, -70, -50]
 
 # FFT parameters
 window = gn.Window.BLACKMAN_HARRIS  # FFT window
-navg = 2           # No. of fft averages
+navg = 2  # No. of fft averages
 nfft = 1024 * 64  # FFT order
-npts = navg * nfft # Receive buffer size
+npts = navg * nfft  # Receive buffer size
 
 # 1. Connect to M2K
-my_m2k = libm2k.m2kOpen(args['m2k_uri'])
+my_m2k = libm2k.m2kOpen(args["m2k_uri"])
 if my_m2k is None:
     print("Connection Error: No ADALM2000 device available/connected to your PC.")
     exit(1)
@@ -56,7 +62,7 @@ aout.reset()
 my_m2k.calibrateDAC()
 aout.setSampleRate(0, fs_out)
 aout.enableChannel(0, True)
-aout.setCyclic(True) # Send buffer repeatedly, not just once
+aout.setCyclic(True)  # Send buffer repeatedly, not just once
 
 # Initialize ADC channel 0
 ain = my_m2k.getAnalogIn()
@@ -92,7 +98,7 @@ for tone in range(len(noise_freqs)):
     awf += gn.cos(npts, fs_out, noise_ampl[tone], freq, 0, 0, 0)
 
 # 3. Transmit generated waveform
-aout.push([awf]) # Would be [awf0, awf1] if sending data to multiple channels
+aout.push([awf])  # Would be [awf0, awf1] if sending data to multiple channels
 
 sleep(0.5)
 
@@ -100,10 +106,11 @@ sleep(0.5)
 data_in = ain.getSamples(npts)[0]
 
 # 5. Analyze recorded waveform
-workshop.fourier_analysis(data_in,
-    fundamental = fund_freq,
-    sampling_rate = fs_in,
-    window = window,
-    ssb_fund = 200,
-    ssb_rest = 200
+workshop.fourier_analysis(
+    data_in,
+    fundamental=fund_freq,
+    sampling_rate=fs_in,
+    window=window,
+    ssb_fund=200,
+    ssb_rest=200,
 )

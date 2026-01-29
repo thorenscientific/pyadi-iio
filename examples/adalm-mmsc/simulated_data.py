@@ -4,8 +4,8 @@
 # Author: Ioan Dragomir (ioan.dragomir@analog.com)
 
 import genalyzer as gn
-import numpy as np
 import matplotlib.pyplot as pl
+import numpy as np
 from matplotlib.patches import Rectangle as MPRect
 
 # Configuration Params
@@ -91,11 +91,11 @@ freq_axis = gn.freq_axis(nfft, gn.FreqAxisType.REAL, fs)
 fft_db = gn.db(fft_cplx)
 
 # Fourier analysis configuration
-key = 'fa'
+key = "fa"
 gn.mgr_remove(key)
 gn.fa_create(key)
 gn.fa_analysis_band(key, "fdata*0.0", "fdata*1.0")
-gn.fa_fixed_tone(key, 'A', gn.FaCompTag.SIGNAL, fund_freq, ssb_fund)
+gn.fa_fixed_tone(key, "A", gn.FaCompTag.SIGNAL, fund_freq, ssb_fund)
 gn.fa_hd(key, 4)
 gn.fa_ssb(key, gn.FaSsb.DEFAULT, ssb_rest)
 gn.fa_ssb(key, gn.FaSsb.DC, -1)
@@ -107,20 +107,30 @@ print(gn.fa_preview(key, False))
 # Fourier analysis results
 fft_results = gn.fft_analysis(key, fft_cplx, nfft)
 # compute THD
-thd = 20 * np.log10(fft_results['thd_rss'] / harm_ampl[0])
+thd = 20 * np.log10(fft_results["thd_rss"] / harm_ampl[0])
 
 print("\nFourier Analysis Results:\n")
 print("\nFrequency, Phase and Amplitude for Harmonics:\n")
-for k in ['A:freq', 'A:mag_dbfs', 'A:phase',
-          '2A:freq', '2A:mag_dbfs', '2A:phase',
-          '3A:freq', '3A:mag_dbfs', '3A:phase',
-          '4A:freq', '4A:mag_dbfs', '4A:phase']:
+for k in [
+    "A:freq",
+    "A:mag_dbfs",
+    "A:phase",
+    "2A:freq",
+    "2A:mag_dbfs",
+    "2A:phase",
+    "3A:freq",
+    "3A:mag_dbfs",
+    "3A:phase",
+    "4A:freq",
+    "4A:mag_dbfs",
+    "4A:phase",
+]:
     print("{:20s}{:20.6f}".format(k, fft_results[k]))
 print("\nFrequency, Phase and Amplitude for Noise:\n")
-for k in ['wo:freq','wo:mag_dbfs', 'wo:phase']:
+for k in ["wo:freq", "wo:mag_dbfs", "wo:phase"]:
     print("{:20s}{:20.6f}".format(k, fft_results[k]))
 print("\nSNR and THD \n")
-for k in ['snr', 'fsnr']:
+for k in ["snr", "fsnr"]:
     print("{:20s}{:20.6f}".format(k, fft_results[k]))
 print("{:20s}{:20.6f}".format("thd", thd))
 
@@ -135,10 +145,13 @@ pl.ylim(-160.0, 20.0)
 annots = gn.fa_annotations(fft_results)
 
 for x, y, label in annots["labels"]:
-    pl.annotate(label, xy=(x, y), ha='center', va='bottom')
+    pl.annotate(label, xy=(x, y), ha="center", va="bottom")
 for box in annots["tone_boxes"]:
-    fftax.add_patch(MPRect((box[0], box[1]), box[2], box[3],
-                           ec='pink', fc='pink', fill=True, hatch='x'))
+    fftax.add_patch(
+        MPRect(
+            (box[0], box[1]), box[2], box[3], ec="pink", fc="pink", fill=True, hatch="x"
+        )
+    )
 
 pl.tight_layout()
 pl.show()
