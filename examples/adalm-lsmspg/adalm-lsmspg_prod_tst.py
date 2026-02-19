@@ -40,10 +40,17 @@ parser.add_argument(
     action="store",
     nargs="*",
 )
+parser.add_argument(
+    "-v",
+    "--verbose",
+    help="Enable verbose output",
+    action="store_true",
+    default=False,
+)
 args = parser.parse_args()
 my_uri = args.u[0]
 
-verbose = False
+verbose = args.verbose
 beta_min = 150.0
 beta_max = 450.0
 
@@ -239,15 +246,16 @@ del my_ad5592r
 gc.collect()
 sleep(1.0)
 
-plt.figure(1)  # Create new figure
-plt.title("Fred in the Shed NPN Curve Tracer: Prototype 0.1")
-plt.xlabel("Collector Voltage (V)")
-plt.ylabel("Collector Current (mA)")
-plt.tight_layout()  # A bit of formatting
-for curve in range(0, len(curves_npn)):  # Iterate through curves_npn
-    # plot() method arguments are X values, y values, with optional parameters after.
-    plt.plot(curves_npn[curve][vcs_index], curves_npn[curve][ics_index])
-plt.show()  # Self-explanatory :)
+if verbose:
+    plt.figure(1)  # Create new figure
+    plt.title("Fred in the Shed NPN Curve Tracer: Prototype 0.1")
+    plt.xlabel("Collector Voltage (V)")
+    plt.ylabel("Collector Current (mA)")
+    plt.tight_layout()  # A bit of formatting
+    for curve in range(0, len(curves_npn)):  # Iterate through curves_npn
+        # plot() method arguments are X values, y values, with optional parameters after.
+        plt.plot(curves_npn[curve][vcs_index], curves_npn[curve][ics_index])
+    plt.show()  # Self-explanatory :)
 
 
 # Calculate betas...
@@ -320,15 +328,16 @@ for vb in range(2499, 0, -499):  # Sweep base voltage from 499 mV to 2.5V in 5 s
 del my_ad5593r
 gc.collect()
 
-plt.figure(2)  # Create new figure
-plt.title("Fred in the Shed PNP Curve Tracer: Prototype 0.1\nPNP with AD5593r")
-plt.xlabel("Collector Voltage (V)")
-plt.ylabel("Collector Current (mA)")
-plt.tight_layout()  # A bit of formatting
-for curve in range(0, len(curves_pnp)):  # Iterate through curves_pnp
-    # plot() method arguments are X values, y values, with optional parameters after.
-    plt.plot(curves_pnp[curve][vcs_index], curves_pnp[curve][ics_index])
-plt.show()  # Self-explanatory :)
+if verbose:
+    plt.figure(2)  # Create new figure
+    plt.title("Fred in the Shed PNP Curve Tracer: Prototype 0.1\nPNP with AD5593r")
+    plt.xlabel("Collector Voltage (V)")
+    plt.ylabel("Collector Current (mA)")
+    plt.tight_layout()  # A bit of formatting
+    for curve in range(0, len(curves_pnp)):  # Iterate through curves_pnp
+        # plot() method arguments are X values, y values, with optional parameters after.
+        plt.plot(curves_pnp[curve][vcs_index], curves_pnp[curve][ics_index])
+    plt.show()  # Self-explanatory :)
 
 # Calculate betas...
 beta_pnp = 0.0
