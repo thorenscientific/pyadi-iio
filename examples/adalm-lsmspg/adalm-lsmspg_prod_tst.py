@@ -19,11 +19,13 @@ beta test.
 """
 
 import argparse
-import adi
 import gc
+from time import sleep
+
 import matplotlib.pyplot as plt
 import numpy as np
-from time import sleep
+
+import adi
 
 # Optionally pass URI as command line argument, else use analog.local
 # (URI stands for "Uniform Resource Identifier")
@@ -41,11 +43,7 @@ parser.add_argument(
     nargs="*",
 )
 parser.add_argument(
-    "-v",
-    "--verbose",
-    help="Enable verbose output",
-    action="store_true",
-    default=False,
+    "-v", "--verbose", help="Enable verbose output", action="store_true", default=False,
 )
 args = parser.parse_args()
 my_uri = args.u[0]
@@ -58,8 +56,9 @@ failures = []
 
 print("uri: " + str(my_uri))
 
+
 def get_closest_index_numpy(float_list, target_number):
-  """
+    """
   Finds the index of the float in a list that is closest to a target number.
 
   Args:
@@ -69,11 +68,11 @@ def get_closest_index_numpy(float_list, target_number):
   Returns:
     The index of the closest float.
   """
-  # Calculate the absolute difference between each element and the target
-  difference_array = np.abs(np.array(float_list) - target_number)
-  # Find the index of the minimum difference
-  closest_index = difference_array.argmin()
-  return closest_index
+    # Calculate the absolute difference between each element and the target
+    difference_array = np.abs(np.array(float_list) - target_number)
+    # Find the index of the minimum difference
+    closest_index = difference_array.argmin()
+    return closest_index
 
 
 # Instantiate and connect to our AD5592r
@@ -88,9 +87,7 @@ my_lm75 = adi.lm75(uri=my_uri)
 print("\nChecking temperature channel...")
 print("Temperature raw: " + str(my_lm75.input))
 my_lm75_temperature = my_lm75.to_degrees(my_lm75.input)
-print(
-    "Temperature in deg. Celsius: " + str(my_lm75_temperature)
-)
+print("Temperature in deg. Celsius: " + str(my_lm75_temperature))
 
 print("\nUpdate interval: " + str(my_lm75.update_interval))
 
@@ -111,7 +108,7 @@ print("Max hysteresis: " + str(my_lm75.to_degrees(my_lm75.max_hyst)))
 # Giving a wide range, we just want to make sure the LM75 is alive:
 if 15.0 < my_lm75_temperature < 35.0:
     print("LM75 temperature passes!")
-    
+
 else:
     print("LM75 temperature failure!")
     failures.append("LM75: " + str(my_lm75_temperature))
@@ -187,7 +184,6 @@ if my_gpios.gpio_ad5593r_gpi_ch_6 == 0:
 else:
     print("D'oh! 5592 ch 6-7! fails :(")
     failures.append("5593 ch 6-7")
-    
 
 
 del my_gpios
@@ -227,7 +223,9 @@ for vb in range(499, 2500, 500):  # Sweep base voltage from 499 mV to 2.5V in 5 
     vcs = []  # Empty list for collector voltages
     ics = []  # Empty list for collector currents
     if verbose:
-        print("Base Drive: ", Vbdrive.raw * mV_per_lsb / 1000, " Volts, ", ib * 1e6, " uA")
+        print(
+            "Base Drive: ", Vbdrive.raw * mV_per_lsb / 1000, " Volts, ", ib * 1e6, " uA"
+        )
     for vcv in range(
         0, 2500, 50
     ):  # Sweep collector drive voltage from 0 to 2.5V in 50 mV steps
@@ -262,8 +260,8 @@ if verbose:
 beta_npn = 0.0
 index_1p5 = get_closest_index_numpy(curves_npn[0][vcs_index], 1.50)
 for i in range(1, len(curves_npn)):
-    beta_npn += curves_npn[i][ics_index][index_1p5] # Extract collector current
-beta_npn = np.abs((beta_npn / (len(curves_npn)-1)) / (500.0 / Rbase))
+    beta_npn += curves_npn[i][ics_index][index_1p5]  # Extract collector current
+beta_npn = np.abs((beta_npn / (len(curves_npn) - 1)) / (500.0 / Rbase))
 
 if beta_min < beta_npn < beta_max:
     print("NPN beta passes: ", beta_npn)
@@ -285,7 +283,9 @@ Vbdrive = my_ad5593r.voltage0_dac
 Vcsense = my_ad5593r.voltage1_adc
 Vcdrive = my_ad5593r.voltage2_dac
 Vcdrive_meas = my_ad5593r.voltage2_adc
-Vedrive = my_ad5593r.voltage3_dac # UNLIKE NPN whose Ve is GND, need to set this explicitly
+Vedrive = (
+    my_ad5593r.voltage3_dac
+)  # UNLIKE NPN whose Ve is GND, need to set this explicitly
 
 
 mV_per_lsb = Vcdrive.scale  # Makes things a bit more intuitive below.
@@ -309,7 +309,9 @@ for vb in range(2499, 0, -499):  # Sweep base voltage from 499 mV to 2.5V in 5 s
     vcs = []  # Empty list for collector voltages
     ics = []  # Empty list for collector currents
     if verbose:
-        print("Base Drive: ", Vbdrive.raw * mV_per_lsb / 1000, " Volts, ", ib * 1e6, " uA")
+        print(
+            "Base Drive: ", Vbdrive.raw * mV_per_lsb / 1000, " Volts, ", ib * 1e6, " uA"
+        )
     for vcv in range(
         2499, 0, -50
     ):  # Sweep collector drive voltage from 0 to 2.5V in 50 mV steps
@@ -317,10 +319,10 @@ for vb in range(2499, 0, -499):  # Sweep base voltage from 499 mV to 2.5V in 5 s
         ic = (
             (Vcdrive_meas.raw - Vcsense.raw) * mV_per_lsb / Rsense
         )  # Measure collector current
-        vc = Vcsense.raw * mV_per_lsb / 1000.0 # Remember - actual collector voltage is
+        vc = Vcsense.raw * mV_per_lsb / 1000.0  # Remember - actual collector voltage is
         vcs.append(vc)  # a bit less due to sense resistor
         ics.append(ic)  # Add measurements to lists
-        
+
         if verbose:
             print("coll voltage: ", vc, "  coll curre: ", ic)  # Print for fun
     curves_pnp.append([vcs, ics])  # vcs, ics, will be index 0, 1, respectively
@@ -343,17 +345,19 @@ if verbose:
 beta_pnp = 0.0
 index_1p5 = get_closest_index_numpy(curves_pnp[0][vcs_index], 1.50)
 for i in range(1, len(curves_pnp)):
-    beta_pnp += curves_pnp[i][ics_index][index_1p5] # Extract collector current
-beta_pnp = np.abs((beta_pnp / (len(curves_pnp)-1)) / (500.0 / Rbase))
+    beta_pnp += curves_pnp[i][ics_index][index_1p5]  # Extract collector current
+beta_pnp = np.abs((beta_pnp / (len(curves_pnp) - 1)) / (500.0 / Rbase))
 
 if beta_min < beta_pnp < beta_max:
     print("PNP beta passes: ", beta_pnp)
 
 
-resp = input("Are the following true?\n * Left-hand LED (DS3) is RED\n * Right-hand LED (DS4) is GREEN\n * LM75 LED (DS2) is BLINKING\n(y or n)")
-if(resp == "y" and len(failures) == 0):
+resp = input(
+    "Are the following true?\n * Left-hand LED (DS3) is RED\n * Right-hand LED (DS4) is GREEN\n * LM75 LED (DS2) is BLINKING\n(y or n)"
+)
+if resp == "y" and len(failures) == 0:
     print("WooHoo! Whole board passes!")
-    
+
 else:
     print("D'oh! Board fails either LEDs or these tests:")
     print(failures)

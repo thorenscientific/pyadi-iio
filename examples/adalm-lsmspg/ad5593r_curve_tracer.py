@@ -3,7 +3,9 @@
 # SPDX short identifier: ADIBSD
 
 import argparse
+
 import matplotlib.pyplot as plt  # Matplotlib is a very common Python plotting routine.
+
 import adi  # This is the main pyadi-iio module, contains everything
 
 # Optionally pass URI as command line argument, else use analog.local
@@ -11,8 +13,10 @@ import adi  # This is the main pyadi-iio module, contains everything
 # NOTE - when running directly on the Raspberry Pi, you CAN use "local",
 # but you must run as root (sudo) because we are writing as well as reading
 
-parser = argparse.ArgumentParser(description="AD5592r NPN Curve Tracer, see\
-                                 docs for connections")
+parser = argparse.ArgumentParser(
+    description="AD5592r NPN Curve Tracer, see\
+                                 docs for connections"
+)
 parser.add_argument(
     "-u",
     default=["ip:analog.local"],
@@ -44,7 +48,9 @@ Vbdrive = my_ad5593r.voltage0_dac
 Vcsense = my_ad5593r.voltage1_adc
 Vcdrive = my_ad5593r.voltage2_dac
 Vcdrive_meas = my_ad5593r.voltage2_adc
-Vedrive = my_ad5593r.voltage3_dac # UNLIKE NPN whose Ve is GND, need to set this explicitly
+Vedrive = (
+    my_ad5593r.voltage3_dac
+)  # UNLIKE NPN whose Ve is GND, need to set this explicitly
 
 
 mV_per_lsb = Vcdrive.scale  # Makes things a bit more intuitive below.
@@ -75,7 +81,7 @@ for vb in range(2000, 0, -500):  # Sweep base voltage from 499 mV to 2.5V in 5 s
         ic = (
             (Vcdrive_meas.raw - Vcsense.raw) * mV_per_lsb / Rsense
         )  # Measure collector current
-        vc = Vcsense.raw * mV_per_lsb / 1000.0 # Remember - actual collector voltage is
+        vc = Vcsense.raw * mV_per_lsb / 1000.0  # Remember - actual collector voltage is
         vcs.append(vc)  # a bit less due to sense resistor
         ics.append(ic)  # Add measurements to lists
         print("coll voltage: ", vc, "  coll curre: ", ic)  # Print for fun

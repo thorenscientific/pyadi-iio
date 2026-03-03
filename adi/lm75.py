@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2025 Analog Devices, Inc.
+# Copyright (C) 2022-2026 Analog Devices, Inc.
 #
 # SPDX short identifier: ADIBSD
 
@@ -39,7 +39,9 @@ class lm75(context_manager, attribute):
                 else:
                     index += 1
 
-        self._ch_name = self._ctrl.channels[0]._id # handle minor discrepancies in channel name
+        self._ch_name = self._ctrl.channels[
+            0
+        ]._id  # handle minor discrepancies in channel name
 
     @property
     def update_interval(self):
