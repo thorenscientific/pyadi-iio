@@ -6,14 +6,14 @@ import argparse
 import sys
 from time import sleep
 
-import libm2k
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Button, RadioButtons, TextBox
-import numpy as np
-from scipy import signal
+import libm2k # type: ignore
+import matplotlib.pyplot as plt # type: ignore
+from matplotlib.widgets import Button, RadioButtons, TextBox # type: ignore
+import numpy as np  # type: ignore
+from scipy import signal # type: ignore
 from sine_gen import *
 
-from adi import ad4080
+from adi import ad4080 # type: ignore
 
 parser = argparse.ArgumentParser(
     description="Frequency sweep: Generate signals with M2K, measure with AD4080, analyze frequency response.",
@@ -27,7 +27,7 @@ Example usage:
 parser.add_argument(
     "-m",
     "--m2k_uri",
-    default="usb:1.12.5",
+    default="ip:192.168.2.1",
     help="LibIIO context URI of the ADALM2000 (default: usb:1.12.5)",
 )
 parser.add_argument(
@@ -266,17 +266,17 @@ ax_filt = fig.add_axes([0.20, 0.03, 0.30, 0.09])
 ax_run = fig.add_axes([0.53, 0.03, 0.28, 0.09])
 
 tb_start = TextBox(ax_start, "Start (Hz)", initial=str(args["start"]))
-tb_start.label.set_x(-0.05)
+tb_start.label.set_x(-0.05)   # type: ignore
 tb_stop = TextBox(ax_stop, "Stop (Hz)", initial=str(args["stop"]))
-tb_stop.label.set_x(-0.05)
+tb_stop.label.set_x(-0.05)   # type: ignore
 tb_step = TextBox(ax_step, "Step (Hz)", initial=str(args["step"]))
-tb_step.label.set_x(-0.05)
+tb_step.label.set_x(-0.05)   # type: ignore
 tb_osr = TextBox(ax_osr, "OSR", initial=str(args["osr"]))
-tb_osr.label.set_x(-0.07) 
+tb_osr.label.set_x(-0.07) # type: ignore
 
 filter_options = ["sinc1", "sinc5", "sinc5+pf1"]
 default_filter = args["filter"] if args["filter"] in filter_options else "sinc5"
-rb_filt = RadioButtons(ax_filt, filter_options, active=filter_options.index(default_filter))
+rb_filt = RadioButtons(ax_filt, filter_options, active=filter_options.index(default_filter)) # type: ignore
 
 # Valid OSR values: derive from device if available
 try:
