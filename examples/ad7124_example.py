@@ -6,8 +6,6 @@ import argparse
 
 import time
 
-import matplotlib.pyplot as plt
-
 import adi
 
 # Set up AD7124
@@ -16,15 +14,24 @@ import adi
 parser = argparse.ArgumentParser(description="AD7124 Example Script")
 parser.add_argument(
     "-u",
-    default=["ip:analog.local"],
+    default="ip:analog.local",
     help="-u (arg) URI of target device's context, eg: 'ip:analog.local',\
     'ip:192.168.2.1',\
     'serial:COM4,115200,8n1n'",
     action="store",
-    nargs="*",
 )
+
+parser.add_argument(
+    "-v",
+    "--verbose",
+    default=False,
+    help="Enable verbose output",
+    action="store_true",
+)
+
 args = parser.parse_args()
-my_uri = args.u[0]
+my_uri = args.u
+verbose = args.verbose
 
 print("uri: " + str(my_uri))
 
@@ -55,18 +62,6 @@ my_ad7124.rx_enabled_channels = [1, 2, 3, 4, 5, 6, 7, 8]
 time.sleep(0.1)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 ad_channel0 = 1  # voltage0-voltage1 plug to CH1 on my m2k
 ad_channel1 = 2  # voltage2-voltage3 plug to CH2 on my m2k
 
@@ -90,16 +85,19 @@ data = my_ad7124.rx()
 
 print(data)
 
-plt.figure(1)
-plt.title(
-    f"{my_ad7124._ctrl.name} @{my_ad7124.channel[ad_channel0].sampling_frequency}sps"
-)
-plt.ylabel("Volts")
-plt.xlabel("Sample Number")
-plt.plot(
-    data[0], label=my_ad7124.channel[ad_channel0].name, color="orange", linewidth=2
-)
-plt.plot(data[1], label=my_ad7124.channel[ad_channel1].name, color="blue", linewidth=2)
-plt.show()
+if verbose is True:
+    import matplotlib.pyplot as plt
+
+    plt.figure(1)
+    plt.title(
+        f"{my_ad7124._ctrl.name} @{my_ad7124.channel[ad_channel0].sampling_frequency}sps"
+    )
+    plt.ylabel("Volts")
+    plt.xlabel("Sample Number")
+    plt.plot(
+        data[0], label=my_ad7124.channel[ad_channel0].name, color="orange", linewidth=2
+    )
+    plt.plot(data[1], label=my_ad7124.channel[ad_channel1].name, color="blue", linewidth=2)
+    plt.show()
 
 del my_ad7124
