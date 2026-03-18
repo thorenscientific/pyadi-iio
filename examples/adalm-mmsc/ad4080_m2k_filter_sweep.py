@@ -4,16 +4,129 @@
 
 import argparse
 import sys
+import tkinter as tk
 from time import sleep
+from tkinter import messagebox, ttk
 
-import libm2k # type: ignore
-import matplotlib.pyplot as plt # type: ignore
-from matplotlib.widgets import Button, RadioButtons, TextBox # type: ignore
+import libm2k  # type: ignore
+import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
-from scipy import signal # type: ignore
+import serial.tools.list_ports  # type: ignore
+from matplotlib.widgets import Button, RadioButtons, TextBox  # type: ignore
+from scipy import signal  # type: ignore
 from sine_gen import *
 
-from adi import ad4080 # type: ignore
+from adi import ad4080  # type: ignore
+
+
+def scan_com_ports():
+    """Scan for available COM ports without opening them"""
+    ports = serial.tools.list_ports.comports()
+    return [port.device for port in sorted(ports)]
+
+
+def scan_m2k_devices():
+    """Scan for available M2K devices"""
+    try:
+        contexts = libm2k.getAllContexts()
+        return contexts if contexts else []
+    except:
+        return []
+
+
+class DeviceSelectionDialog:
+    def __init__(self):
+        self.result = None
+        self.root = tk.Tk()
+        self.root.title("Select Devices")
+        self.root.geometry("400x200")
+
+        main_frame = ttk.Frame(self.root, padding="20")
+        main_frame.pack(fill="both", expand=True)
+
+        row = 0
+
+        # AD4080 COM Port selection
+        ttk.Label(main_frame, text="AD4080 COM Port:", font=("", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=10
+        )
+
+        available_ports = scan_com_ports()
+        if available_ports:
+            self.com_port = tk.StringVar(
+                value="COM12" if "COM12" in available_ports else available_ports[0]
+            )
+            ttk.Combobox(
+                main_frame,
+                textvariable=self.com_port,
+                values=available_ports,
+                width=25,
+                state="readonly",
+            ).grid(row=row, column=1, sticky="w", padx=5)
+        else:
+            self.com_port = tk.StringVar(value="COM12")
+            ttk.Entry(main_frame, textvariable=self.com_port, width=27).grid(
+                row=row, column=1, sticky="w", padx=5
+            )
+        row += 1
+
+        # M2K URI selection
+        ttk.Label(main_frame, text="M2K URI:", font=("", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=10
+        )
+
+        available_m2k = scan_m2k_devices()
+        if available_m2k:
+            self.m2k_uri = tk.StringVar(value=available_m2k[0])
+            ttk.Combobox(
+                main_frame,
+                textvariable=self.m2k_uri,
+                values=available_m2k,
+                width=25,
+                state="readonly",
+            ).grid(row=row, column=1, sticky="w", padx=5)
+        else:
+            self.m2k_uri = tk.StringVar(value="ip:192.168.2.1")
+            ttk.Entry(main_frame, textvariable=self.m2k_uri, width=27).grid(
+                row=row, column=1, sticky="w", padx=5
+            )
+        row += 1
+
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=row, column=0, columnspan=2, pady=20)
+
+        ttk.Button(button_frame, text="Connect", command=self.on_ok, width=12).pack(
+            side="left", padx=5
+        )
+        ttk.Button(button_frame, text="Cancel", command=self.on_cancel, width=12).pack(
+            side="left", padx=5
+        )
+
+    def on_ok(self):
+        self.result = {
+            "com_port": self.com_port.get(),
+            "m2k_uri": self.m2k_uri.get(),
+        }
+        self.root.quit()
+        self.root.destroy()
+
+    def on_cancel(self):
+        self.root.quit()
+        self.root.destroy()
+
+    def show(self):
+        self.root.mainloop()
+        return self.result
+
+
+# Show device selection dialog
+device_dialog = DeviceSelectionDialog()
+selected_devices = device_dialog.show()
+
+if selected_devices is None:
+    print("Connection cancelled by user")
+    sys.exit(0)
 
 parser = argparse.ArgumentParser(
     description="Frequency sweep: Generate signals with M2K, measure with AD4080, analyze frequency response.",
@@ -22,19 +135,19 @@ parser = argparse.ArgumentParser(
 Example usage:
   python ad4080_m2k_filter_sweep.py --start 50000 --stop 500000 --step 10000 --osr 64
     python ad4080_m2k_filter_sweep.py --filter sinc5+pf1 --amplitude 1.5
-    """
+    """,
 )
 parser.add_argument(
     "-m",
     "--m2k_uri",
-    default="ip:192.168.2.1",
-    help="LibIIO context URI of the ADALM2000 (default: usb:1.12.5)",
+    default=selected_devices["m2k_uri"],
+    help="LibIIO context URI of the ADALM2000",
 )
 parser.add_argument(
     "-u",
     "--ad4080_uri",
-    default="serial:COM13,230400",
-    help="LibIIO context URI of the EVAL-AD4080ARDZ (default: serial:COM12,230400)",
+    default=f"serial:{selected_devices['com_port']},230400",
+    help="LibIIO context URI of the EVAL-AD4080ARDZ",
 )
 
 # Frequency sweep parameters
@@ -59,10 +172,7 @@ parser.add_argument(
 
 # AD4080 configuration
 parser.add_argument(
-    "--osr",
-    type=int,
-    default=128,
-    help="Oversampling ratio (default: 128)",
+    "--osr", type=int, default=1024, help="Oversampling ratio (default: 1024)",
 )
 parser.add_argument(
     "--filter",
@@ -122,8 +232,8 @@ print("oversampling_ratio_available:", my_adc.oversampling_ratio_available)
 print("filter_type_available:", my_adc.filter_type_available)
 
 print(f"\nSetting filter to {args['filter'].upper()}, OSR={args['osr']}")
-my_adc.oversampling_ratio = args['osr']
-my_adc.filter_type = args['filter']
+my_adc.oversampling_ratio = args["osr"]
+my_adc.filter_type = args["filter"]
 print("Readback filter type:", my_adc.filter_type)
 print("Readback OSR:", my_adc.oversampling_ratio)
 
@@ -166,7 +276,9 @@ siggen = ctx.getAnalogOut()
 vref = 5.0
 
 
-def run_sweep(start_hz, stop_hz, step_hz, osr, filt, amplitude, offset, phase, settle_time):
+def run_sweep(
+    start_hz, stop_hz, step_hz, osr, filt, amplitude, offset, phase, settle_time
+):
     """Run a frequency sweep and return processed results for plotting."""
 
     my_adc.oversampling_ratio = osr
@@ -190,8 +302,12 @@ def run_sweep(start_hz, stop_hz, step_hz, osr, filt, amplitude, offset, phase, s
 
     for i, input_frequency_hz in enumerate(frequency_range, 1):
         # Generate sine buffers for the current input frequency
-        samp0, buffer0 = sine_buffer_generator(0, input_frequency_hz, amplitude, offset, phase)
-        samp1, buffer1 = sine_buffer_generator(1, input_frequency_hz, amplitude, offset, 0)
+        samp0, buffer0 = sine_buffer_generator(
+            0, input_frequency_hz, amplitude, offset, phase
+        )
+        samp1, buffer1 = sine_buffer_generator(
+            1, input_frequency_hz, amplitude, offset, 0
+        )
 
         siggen.enableChannel(0, True)
         siggen.enableChannel(1, True)
@@ -203,7 +319,9 @@ def run_sweep(start_hz, stop_hz, step_hz, osr, filt, amplitude, offset, phase, s
 
         sleep(settle_time)
 
-        print(f"[{i}/{total_sweep_points}] Measuring at {input_frequency_hz/1000:.1f} kHz...")
+        print(
+            f"[{i}/{total_sweep_points}] Measuring at {input_frequency_hz/1000:.1f} kHz..."
+        )
 
         data = my_adc.rx()
         data = my_adc.rx()
@@ -238,6 +356,7 @@ def run_sweep(start_hz, stop_hz, step_hz, osr, filt, amplitude, offset, phase, s
         last_spectrum_abs,
     )
 
+
 # Set up interactive GUI for sweep and plots
 # Figure 2: time-domain and spectrum (with controls)
 fig, (ax_td, ax_spec) = plt.subplots(2, 1, figsize=(6, 6))
@@ -247,69 +366,63 @@ fig.subplots_adjust(left=0.08, right=0.98, bottom=0.28, top=0.95, hspace=0.5)
 ax_td.set_title("AD4080 Time Domain Data (Last Acquisition)")
 ax_td.set_xlabel("Data Point")
 ax_td.set_ylabel("Voltage (V)")
-td_line, = ax_td.plot([], [], label="time domain")
+(td_line,) = ax_td.plot([], [], label="time domain")
 ax_td.legend(loc="upper right")
 
 ax_spec.set_title("AD4080 Spectrum (Volts absolute)")
 ax_spec.set_xlabel("frequency [Hz]")
 ax_spec.set_ylabel("Voltage (V)")
-spec_line, = ax_spec.semilogy([], [])
+(spec_line,) = ax_spec.semilogy([], [])
 ax_spec.set_ylim([1e-6, 4])
 
 # Widget axes (placed along the bottom of Figure 2)
 # Shift all controls to the right to better use horizontal space
 ax_start = fig.add_axes([0.235, 0.17, 0.10, 0.05])
-ax_stop  = fig.add_axes([0.40, 0.17, 0.10, 0.05])
-ax_step  = fig.add_axes([0.58, 0.17, 0.10, 0.05])
-ax_osr   = fig.add_axes([0.72, 0.17, 0.06, 0.05])
+ax_stop = fig.add_axes([0.40, 0.17, 0.10, 0.05])
+ax_step = fig.add_axes([0.58, 0.17, 0.10, 0.05])
+ax_osr = fig.add_axes([0.72, 0.17, 0.06, 0.05])
 ax_filt = fig.add_axes([0.20, 0.03, 0.30, 0.09])
 ax_run = fig.add_axes([0.53, 0.03, 0.28, 0.09])
 
 tb_start = TextBox(ax_start, "Start (Hz)", initial=str(args["start"]))
-tb_start.label.set_x(-0.05)   # type: ignore
+tb_start.label.set_x(-0.05)  # type: ignore
 tb_stop = TextBox(ax_stop, "Stop (Hz)", initial=str(args["stop"]))
-tb_stop.label.set_x(-0.05)   # type: ignore
+tb_stop.label.set_x(-0.05)  # type: ignore
 tb_step = TextBox(ax_step, "Step (Hz)", initial=str(args["step"]))
-tb_step.label.set_x(-0.05)   # type: ignore
+tb_step.label.set_x(-0.05)  # type: ignore
 tb_osr = TextBox(ax_osr, "OSR", initial=str(args["osr"]))
-tb_osr.label.set_x(-0.07) # type: ignore
+tb_osr.label.set_x(-0.07)  # type: ignore
 
 filter_options = ["sinc1", "sinc5", "sinc5+pf1"]
 default_filter = args["filter"] if args["filter"] in filter_options else "sinc5"
-rb_filt = RadioButtons(ax_filt, filter_options, active=filter_options.index(default_filter)) # type: ignore
+rb_filt = RadioButtons(ax_filt, filter_options, active=filter_options.index(default_filter))  # type: ignore
 
-# Valid OSR values: derive from device if available
+# Valid OSR values
+# Get the list of valid OSR values from the device
 try:
     osr_available_raw = my_adc.oversampling_ratio_available
     osr_valid_values = []
-    # Handle list/tuple/array vs string representations
-    if hasattr(osr_available_raw, "__iter__") and not isinstance(osr_available_raw, str):
-        for v in osr_available_raw:
-            try:
-                osr_valid_values.append(int(v))
-            except Exception:
-                continue
+
+    # Convert whatever format we got into a list of integers
+    if isinstance(osr_available_raw, str):
+        # If it's a string, split it and convert each part to an integer
+        osr_valid_values = [
+            int(x) for x in str(osr_available_raw).replace(",", " ").split() if x
+        ]
     else:
-        for token in str(osr_available_raw).replace(",", " ").split():
-            try:
-                osr_valid_values.append(int(token))
-            except Exception:
-                continue
+        # If it's already a list/array, convert each item to an integer
+        osr_valid_values = [int(x) for x in osr_available_raw if x]
+
     if not osr_valid_values:
-        raise ValueError
+        raise ValueError("No valid OSR values found")
+
 except Exception:
-    # Fallback list if the device property is not well-formed
+    # If we can't get the values from the device, use these defaults
     osr_valid_values = [32, 64, 128, 256]
 
 print("OSR valid values:", osr_valid_values)
 
-# Run button with green styling similar to other examples
-btn_run = Button(
-    ax_run,
-    "Run sweep",
-    color="lightgreen",
-    hovercolor="green",
-)
+btn_run = Button(ax_run, "Run sweep", color="lightgreen", hovercolor="green",)
 
 # Figure 3: frequency-response plot in a separate window
 fig_resp, ax_resp = plt.subplots(1, 1, num=3, figsize=(8, 4))
@@ -319,7 +432,7 @@ ax_resp.set_title(
 ax_resp.set_xlabel("frequency [Hz]")
 ax_resp.set_ylabel("response (dB)")
 ax_resp.grid(True)
-resp_line, = ax_resp.semilogx([], [], linestyle="dashed", marker="o", ms=2)
+(resp_line,) = ax_resp.semilogx([], [], linestyle="dashed", marker="o", ms=2)
 
 
 def _parse_int_sanitized(label, text):
