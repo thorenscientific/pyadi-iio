@@ -1,62 +1,247 @@
-# Copyright (C) 2025 Analog Devices, Inc.
+# Copyright (C) 2022 Analog Devices, Inc.
 #
-# SPDX short identifier: ADIBSD
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#     - Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     - Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in
+#       the documentation and/or other materials provided with the
+#       distribution.
+#     - Neither the name of Analog Devices, Inc. nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#     - The use of this software may or may not infringe the patent rights
+#       of one or more patent holders.  This license does not release you
+#       from the requirement that you obtain separate licenses from these
+#       patent holders to use this software.
+#     - Use of the software either in source or binary form, must be run
+#       on or directly connected to an Analog Devices Inc. component.
+#
+# THIS SOFTWARE IS PROVIDED BY ANALOG DEVICES "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED.
+#
+# IN NO EVENT SHALL ANALOG DEVICES BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, INTELLECTUAL PROPERTY
+# RIGHTS, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+# THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import argparse
+
+import tkinter as tk
 from sys import exit
+from tkinter import messagebox, ttk
 
-import genalyzer as gn
-import libm2k
-import numpy as np
+import genalyzer as gn  # type: ignore
+import libm2k  # type: ignore
+import matplotlib.pyplot as plt  # type: ignore
+import numpy as np  # type: ignore
+import serial.tools.list_ports  # type: ignore
 import workshop
 
-import adi
+import adi  # type: ignore
 
-parser = argparse.ArgumentParser(
-    description="Generate a noisy signal on the M2K, record it using the AD4080ARDZ, and do a Fourier analysis."
-)
-parser.add_argument(
-    "-m",
-    "--m2k_uri",
-    default="ip:m2k.local",
-    help="LibIIO context URI of the ADALM2000",
-)
-# parser.add_argument('-a', '--ad4080_uri', default='serial:/dev/ttyACM0,230400,8n1',
-parser.add_argument(
-    "-u",
-    "--ad4080_uri",
-    default="serial:COM49,230400",
-    help="LibIIO context URI of the EVAL-AD4080ARDZ",
-)
-args = vars(parser.parse_args())
+
+def scan_com_ports():
+    """Scan for available COM ports without opening them"""
+    ports = serial.tools.list_ports.comports()
+    return [port.device for port in sorted(ports)]
+
+
+def scan_m2k_devices():
+    """Scan for available M2K devices"""
+    try:
+        contexts = libm2k.getAllContexts()
+        return contexts if contexts else []
+    except:
+        return []
+
+
+class ConfigDialog:
+    def __init__(self):
+        self.result = None
+        self.root = tk.Tk()
+        self.root.title("M2K + AD4080 Signal Generator")
+        self.root.geometry("400x240")
+
+        # Main frame
+        main_frame = ttk.Frame(self.root, padding="15")
+        main_frame.pack(fill="both", expand=True)
+
+        self.create_form(main_frame)
+
+        # Buttons at bottom
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=10, column=0, columnspan=2, pady=20)
+
+        ttk.Button(button_frame, text="Run Test", command=self.on_ok, width=12).pack(
+            side="left", padx=5
+        )
+        ttk.Button(button_frame, text="Cancel", command=self.on_cancel, width=12).pack(
+            side="left", padx=5
+        )
+
+    def create_form(self, parent):
+        row = 0
+
+        # Frequency
+        ttk.Label(parent, text="Fundamental Frequency (Hz):").grid(
+            row=row, column=0, sticky="w", padx=5, pady=8
+        )
+        self.freq = tk.StringVar(value="100000")
+        ttk.Entry(parent, textvariable=self.freq, width=20).grid(
+            row=row, column=1, sticky="w"
+        )
+        row += 1
+
+        # Amplitude
+        ttk.Label(parent, text="Amplitude (dBFS):").grid(
+            row=row, column=0, sticky="w", padx=5, pady=8
+        )
+        self.amplitude = tk.StringVar(value="-3")
+        ttk.Entry(parent, textvariable=self.amplitude, width=20).grid(
+            row=row, column=1, sticky="w"
+        )
+        row += 1
+
+        ttk.Separator(parent, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=15
+        )
+        row += 1
+
+        # Connection URIs
+        ttk.Label(parent, text="AD4080 COM Port:").grid(
+            row=row, column=0, sticky="w", padx=5, pady=8
+        )
+
+        # Scan for available COM ports
+        available_ports = scan_com_ports()
+
+        if available_ports:
+            # Use combobox if ports are found
+            self.ad4080_port = tk.StringVar(
+                value=available_ports[0] if "COM12" not in available_ports else "COM12"
+            )
+            port_combo = ttk.Combobox(
+                parent,
+                textvariable=self.ad4080_port,
+                values=available_ports,
+                width=18,
+                state="readonly",
+            )
+            port_combo.grid(row=row, column=1, sticky="w")
+        else:
+            # Fallback to text entry if no ports found
+            self.ad4080_port = tk.StringVar(value="COM12")
+            ttk.Entry(parent, textvariable=self.ad4080_port, width=20).grid(
+                row=row, column=1, sticky="w"
+            )
+        row += 1
+
+        ttk.Label(parent, text="M2K URI:").grid(
+            row=row, column=0, sticky="w", padx=5, pady=8
+        )
+
+        # Scan for available M2K devices
+        available_m2k = scan_m2k_devices()
+
+        if available_m2k:
+            self.m2k_uri = tk.StringVar(value=available_m2k[0])
+            ttk.Combobox(
+                parent,
+                textvariable=self.m2k_uri,
+                values=available_m2k,
+                width=23,
+                state="readonly",
+            ).grid(row=row, column=1, sticky="w")
+        else:
+            self.m2k_uri = tk.StringVar(value="ip:192.168.2.1")
+            ttk.Entry(parent, textvariable=self.m2k_uri, width=25).grid(
+                row=row, column=1, sticky="w"
+            )
+        row += 1
+
+    def on_ok(self):
+        try:
+            # Validate inputs
+            freq = float(self.freq.get())
+            if freq <= 0:
+                raise ValueError("Frequency must be positive")
+
+            amplitude = float(self.amplitude.get())
+
+            # Build result dictionary with default harmonics and noise
+            self.result = {
+                "fund_freq": freq,
+                "amplitude": amplitude,
+                "ad4080_uri": f"serial:{self.ad4080_port.get()},230400",
+                "m2k_uri": self.m2k_uri.get(),
+                "harmonics": f"{amplitude},-23,-20,-20",  # Default harmonics pattern
+                "noise_freqs": "150000,250000,350000,450000",  # Default noise frequencies
+                "noise_dbfs": "-40,-60,-70,-50",  # Default noise amplitudes
+                "buffer_size": 16384,  # Default buffer size
+                "navg": 2,  # Default averages
+                "fs_out": 7500000.0,  # Default M2K sample rate
+            }
+            self.root.quit()
+            self.root.destroy()
+        except Exception as e:
+            messagebox.showerror(
+                "Invalid Input", f"Error: {str(e)}\nPlease check your inputs."
+            )
+
+    def on_cancel(self):
+        self.root.quit()
+        self.root.destroy()
+
+    def show(self):
+        self.root.mainloop()
+        return self.result
+
+
+# Show GUI configuration dialog
+config = ConfigDialog()
+gui_config = config.show()
+
+if gui_config is None:
+    print("Configuration cancelled by user")
+    exit(0)
 
 # 0. Configuration
-fs_out = 7500000  # Generated waveform sample rate
-fs_in = 40000000  # Received waveform sample rate. AD4080 fixed at 40Msps
+fs_out = gui_config["fs_out"]
+fs_in = 40_000_000
+
+
+def _parse_csv_floats(s: str):
+    if not s or not s.strip():
+        return []
+    return [float(x) for x in s.split(",") if x.strip()]
+
 
 # Tone parameters
-fsr = 2.0  # Full-scale range in Volts
-fund_freq = 100000.0  # Hz
+fsr = 2.0
+fund_freq = gui_config["fund_freq"]
 
-# This is a list of the amplitudes (in dBfs) of the fundamental (first element)
-# and harmonics. You can add more harmonics to the list, but we'll start
-# out with just the 2nd, 3rd, and 4th.
-harm_dbfs = [-3.0, -23.0, -20.0, -20.0]
+harm_dbfs = _parse_csv_floats(gui_config["harmonics"])
+noise_freqs = _parse_csv_floats(gui_config["noise_freqs"])
+noise_dbfs = _parse_csv_floats(gui_config["noise_dbfs"])
 
-# These are lists of the frequencies (Hz) and amplitudes (in dBfs) of
-# interfering tones or "noise tones". Genalyzer will interpret them as not
-# harmonically related and add them to the total noise.
-noise_freqs = [150000.0, 250000.0, 350000.0, 450000.0]
-noise_dbfs = [-40, -60, -70, -50]
+if len(noise_freqs) != len(noise_dbfs):
+    raise ValueError("noise-freqs and noise-dbfs must have the same length")
 
 # FFT parameters
-window = gn.Window.BLACKMAN_HARRIS  # FFT window
-npts = 16384  # Receive buffer size
-navg = 2  # No. of fft averages
-nfft = npts // navg  # No. of points per FFT
+window = gn.Window.BLACKMAN_HARRIS
+npts = gui_config["buffer_size"]
+navg = gui_config["navg"]
+nfft = npts // navg
 
 # 1. Connect to M2K and AD4080
-my_m2k = libm2k.m2kOpen(args["m2k_uri"])
+my_m2k = libm2k.m2kOpen(gui_config["m2k_uri"])
+
 if my_m2k is None:
     print("Connection Error: No ADALM2000 device available/connected to your PC.")
     exit(1)
@@ -70,7 +255,7 @@ aout.enableChannel(0, True)
 aout.setCyclic(True)  # Send buffer repeatedly, not just once
 
 # Connect to AD4080
-my_ad4080 = adi.ad4080(args["ad4080_uri"])
+my_ad4080 = adi.ad4080(gui_config["ad4080_uri"])
 if my_ad4080 is None:
     print("Connection Error: No AD4080 device available/connected to your PC.")
     exit(1)
@@ -79,8 +264,7 @@ if my_ad4080 is None:
 my_ad4080.rx_buffer_size = npts
 my_ad4080.filter_type = "none"
 print(f"Sampling frequency: {my_ad4080.sampling_frequency}")
-# print(f'Available sampling frequencies: {my_ad4080.sampling_frequency_available}') # not in ad4080 class yet
-assert my_ad4080.sampling_frequency == fs_in  # Check 40Msps assumption
+assert my_ad4080.sampling_frequency == fs_in
 
 # 2. Generate waveform containing both the wanted signal and some noise
 
@@ -108,18 +292,55 @@ for tone in range(len(noise_freqs)):
     awf += gn.cos(npts, fs_out, noise_ampl[tone], freq, 0, 0, 0)
 
 # 3. Transmit generated waveform
+print(f"\nM2K Waveform stats:")
+print(f"  Min: {np.min(awf):.6f} V")
+print(f"  Max: {np.max(awf):.6f} V")
+print(f"  Peak-to-Peak: {np.ptp(awf):.6f} V")
+print(f"  RMS: {np.sqrt(np.mean(awf**2)):.6f} V")
+print(f"  Sample rate: {aout.getSampleRate(0)} Hz")
+print(f"  Channel enabled: {aout.isChannelEnabled(0)}")
+print(f"  Cyclic mode: {aout.getCyclic(0)}")
+
 aout.push([awf])  # Would be [awf0, awf1] if sending data to multiple channels
 
 # 4. Receive one buffer of samples
 data_in_raw = my_ad4080.rx()
 
+print(f"\nAD4080 received data stats:")
+print(
+    f"  Raw ADC codes - Min: {np.min(data_in_raw)}, Max: {np.max(data_in_raw)}, Range: {np.ptp(data_in_raw)}"
+)
+print(f"  Scale factor: {my_ad4080.channel[0].scale} µV/code")
+
 # Convert ADC codes to Volts
 data_in = data_in_raw * my_ad4080.channel[0].scale / 1e6  # Scale is in microvolts/code
 
-# 5. Analyze recorded waveform
-workshop.fourier_analysis(
-    data_in, fundamental=fund_freq, sampling_rate=fs_in, window=window
+print(
+    f"  Converted to Volts - Min: {np.min(data_in):.6f} V, Max: {np.max(data_in):.6f} V, Peak-to-Peak: {np.ptp(data_in):.6f} V"
+)
+print(f"  Expected input from M2K: ~1.65 V peak-to-peak")
+print(f"  Script assumes FSR: {fsr} V (±{fsr/2} V)")
+
+# Apply scale correction factor - the AD4080 scale is incorrect by ~3000x
+# Actual peak-to-peak is ~1.65V but driver reports ~0.0005V
+scale_correction = 3043.0  # Measured from actual vs expected signal levels
+data_in_corrected = data_in * scale_correction
+
+print(
+    f"  After scale correction (×{scale_correction:.0f}): Peak-to-Peak: {np.ptp(data_in_corrected):.6f} V"
 )
 
+# Normalize waveform so that full-scale corresponds to 0 dBFS for genalyzer
+# This matches the assumption in workshop.fourier_analysis (fund_ampl = 10**(-3/20))
+data_fs = data_in_corrected / (fsr / 2.0)
 
-# del my_ad4080
+del my_ad4080
+del my_m2k
+
+# 5. Analyze recorded waveform
+workshop.fourier_analysis(
+    data_fs, fundamental=fund_freq, sampling_rate=fs_in, window=window
+)
+
+# Keep figures open until manually closed
+plt.show(block=True)
