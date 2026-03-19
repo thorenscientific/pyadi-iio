@@ -31,10 +31,9 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import argparse
 import sys
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
@@ -119,25 +118,8 @@ if selected_port is None:
     print("Connection cancelled by user")
     sys.exit(0)
 
-parser = argparse.ArgumentParser(
-    description="Detect sample rate, assuming given input frequency"
-)
-parser.add_argument(
-    "-u",
-    "--ad4080_uri",
-    default=f"serial:{selected_port},230400",
-    help="LibIIO context URI of the EVAL-AD4080ARDZ",
-)
-parser.add_argument(
-    "-f",
-    "--frequency",
-    type=int,
-    default=100000,
-    help="Input sine wave frequency in Hz (default: 100kHz)",
-)
-args = vars(parser.parse_args())
-
-my_uri = args["ad4080_uri"]
+my_uri = f"serial:{selected_port},230400"
+input_frequency = 100000  # Default input frequency in Hz (100 kHz)
 
 print("AD4080 uri: " + str(my_uri))
 
@@ -151,7 +133,6 @@ print("Filter type: ", my_adc.filter_type)
 print(f"Expected output sample rate: {my_adc.sampling_frequency} Hz\n")
 
 # Set default frequency - user can change via GUI text box
-input_frequency = args["frequency"]
 print(f"Default input frequency: {input_frequency/1000:.1f} kHz\n")
 
 # Fixed buffer size set to maximum

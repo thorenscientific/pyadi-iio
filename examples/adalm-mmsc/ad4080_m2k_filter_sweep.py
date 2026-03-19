@@ -6,7 +6,7 @@ import argparse
 import sys
 import tkinter as tk
 from time import sleep
-from tkinter import messagebox, ttk
+from tkinter import ttk
 
 import libm2k  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
@@ -137,19 +137,6 @@ Example usage:
     python ad4080_m2k_filter_sweep.py --filter sinc5+pf1 --amplitude 1.5
     """,
 )
-parser.add_argument(
-    "-m",
-    "--m2k_uri",
-    default=selected_devices["m2k_uri"],
-    help="LibIIO context URI of the ADALM2000",
-)
-parser.add_argument(
-    "-u",
-    "--ad4080_uri",
-    default=f"serial:{selected_devices['com_port']},230400",
-    help="LibIIO context URI of the EVAL-AD4080ARDZ",
-)
-
 # Frequency sweep parameters
 parser.add_argument(
     "--start",
@@ -219,7 +206,8 @@ parser.add_argument(
 
 args = vars(parser.parse_args())
 
-my_uri = args["ad4080_uri"]
+my_uri = f"serial:{selected_devices['com_port']},230400"
+m2k_uri = selected_devices["m2k_uri"]
 
 print(f"AD4080 uri: {my_uri}")
 
@@ -263,9 +251,9 @@ plt.show()
 # Set up m2k
 print("Setting up M2K signal generator")
 
-ctx = libm2k.m2kOpen(args["m2k_uri"])
+ctx = libm2k.m2kOpen(m2k_uri)
 if ctx is None:
-    print(f"Failed to open M2K at URI: {args['m2k_uri']}")
+    print(f"Failed to open M2K at URI: {m2k_uri}")
     sys.exit(1)
 
 ctx.calibrateADC()
@@ -432,7 +420,6 @@ ax_resp.set_title(
 ax_resp.set_xlabel("frequency [Hz]")
 ax_resp.set_ylabel("response (dB)")
 ax_resp.grid(True)
-(resp_line,) = ax_resp.semilogx([], [], linestyle="dashed", marker="o", ms=2)
 
 
 def _parse_int_sanitized(label, text):

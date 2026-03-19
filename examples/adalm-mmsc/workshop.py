@@ -6,17 +6,16 @@ both of which would otherwise pollute the example scripts with hundreds of
 lines of code.
 """
 
-import matplotlib.pyplot as pl # type: ignore
+import matplotlib.pyplot as pl  # type: ignore
 
 pl.ion()
 import signal
 import sys
 
-import genalyzer as gn # type: ignore
-import matplotlib # type: ignore
-import numpy as np # type: ignore
-from matplotlib.patches import Rectangle as MPRect # type: ignore
-
+import genalyzer as gn  # type: ignore
+import matplotlib  # type: ignore
+import numpy as np  # type: ignore
+from matplotlib.patches import Rectangle as MPRect  # type: ignore
 
 # Override matplotlib and allow us to stop the program with Ctrl-C
 _goodbye_called = False
@@ -30,21 +29,18 @@ def goodbye(*args):
     print("Got Ctrl-C, terminating")
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     try:
-        import matplotlib._pylab_helpers as pylab_helpers # type: ignore
+        import matplotlib._pylab_helpers as pylab_helpers  # type: ignore
+
         for manager in list(pylab_helpers.Gcf.get_all_fig_managers()):
             try:
                 if hasattr(manager, "canvas"):
-                    manager.canvas.mpl_disconnect("close_event") # type: ignore
+                    manager.canvas.mpl_disconnect("close_event")  # type: ignore
             except Exception:
                 pass
         pl.ioff()
         pl.close("all")
     except Exception:
         pass
-    if "m2k" in globals():
-        globals()["m2k"].contextClose()
-    if "ad4080" in globals():
-        del globals()["ad4080"]
     sys.exit(0)
 
 
@@ -56,13 +52,15 @@ def time_points_from_freq(freq, fs=1, density=False):
     If density=True, scales output by N*sqrt(fs/N) for noise density use.
     """
     N = len(freq)
-    rnd_ph_pos  = np.ones(N - 1, dtype=complex) * np.exp(1j * np.random.uniform(0.0, 2.0 * np.pi, N - 1))
-    rnd_ph_neg  = np.flip(np.conjugate(rnd_ph_pos))
+    rnd_ph_pos = np.ones(N - 1, dtype=complex) * np.exp(
+        1j * np.random.uniform(0.0, 2.0 * np.pi, N - 1)
+    )
+    rnd_ph_neg = np.flip(np.conjugate(rnd_ph_pos))
     rnd_ph_full = np.concatenate(([1], rnd_ph_pos, [1], rnd_ph_neg))
 
-    r_spectrum_full   = np.concatenate((freq, np.roll(np.flip(freq), 1)))
+    r_spectrum_full = np.concatenate((freq, np.roll(np.flip(freq), 1)))
     r_spectrum_rnd_ph = r_spectrum_full * rnd_ph_full
-    r_time_full       = np.fft.ifft(r_spectrum_rnd_ph)
+    r_time_full = np.fft.ifft(r_spectrum_rnd_ph)
 
     rms_imag = np.std(np.imag(r_time_full))
     rms_real = np.std(np.real(r_time_full))
@@ -92,10 +90,10 @@ def fourier_analysis(
         nfft = len(waveform) // navg
     assert len(waveform) == navg * nfft
 
-    waveform  = waveform - np.average(waveform)
-    fft_cplx  = gn.rfft(np.array(waveform), navg, nfft, window, code_fmt, rfft_scale)
+    waveform = waveform - np.average(waveform)
+    fft_cplx = gn.rfft(np.array(waveform), navg, nfft, window, code_fmt, rfft_scale)
     freq_axis = gn.freq_axis(nfft, gn.FreqAxisType.REAL, sampling_rate)
-    fft_db    = gn.db(fft_cplx)
+    fft_db = gn.db(fft_cplx)
 
     key = "fa"
     gn.mgr_remove(key)
@@ -114,10 +112,20 @@ def fourier_analysis(
     thd = 20 * np.log10(fft_results["thd_rss"] / fund_ampl)
 
     print("\nFourier Analysis Results:")
-    for k in ["A:freq","A:mag_dbfs","A:phase",
-               "2A:freq","2A:mag_dbfs","2A:phase",
-               "3A:freq","3A:mag_dbfs","3A:phase",
-               "4A:freq","4A:mag_dbfs","4A:phase"]:
+    for k in [
+        "A:freq",
+        "A:mag_dbfs",
+        "A:phase",
+        "2A:freq",
+        "2A:mag_dbfs",
+        "2A:phase",
+        "3A:freq",
+        "3A:mag_dbfs",
+        "3A:phase",
+        "4A:freq",
+        "4A:mag_dbfs",
+        "4A:phase",
+    ]:
         print("{:20s}{:20.6f}".format(k, fft_results[k]))
     for k in ["wo:freq", "wo:mag_dbfs", "wo:phase", "snr", "fsnr"]:
         print("{:20s}{:20.6f}".format(k, fft_results[k]))
@@ -163,11 +171,13 @@ def generate_noise_band(center, width, fs):
     noise_band_lo = int(max(center - width // 2, 1))
     noise_band_hi = int(min(center + width // 2, fs // 2))
     # FIXME: generate a shorter buffer instead of a full 1-second waveform
-    spectrum  = np.concatenate((
-        np.zeros(noise_band_lo),
-        np.ones(noise_band_hi - noise_band_lo),
-        np.zeros(fs // 2 - noise_band_hi),
-    ))
+    spectrum = np.concatenate(
+        (
+            np.zeros(noise_band_lo),
+            np.ones(noise_band_hi - noise_band_lo),
+            np.zeros(fs // 2 - noise_band_hi),
+        )
+    )
     spectrum /= np.sqrt(noise_band_hi - noise_band_lo)
     return time_points_from_freq(spectrum, fs=fs, density=True)
 
@@ -296,7 +306,6 @@ def plot_waveform_fft_sinc1_unfolded(waveform, fft, fs, generated_freq, decimati
 
     pl.draw()
     pl.pause(0.1)
-    # pl.savefig(f'frames/{i:02}.png')
 
 
 def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
@@ -305,16 +314,14 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
     freq_axis = gn.freq_axis(nfft, gn.FreqAxisType.REAL, fs_in)
 
     fig, (axw, axf, axs) = pl.subplots(
-        3, 1,
-        gridspec_kw={"height_ratios": [3, 6, 1]},
-        figsize=(9, 8),
+        3, 1, gridspec_kw={"height_ratios": [3, 6, 1]}, figsize=(9, 8),
     )
-    fig.patch.set_facecolor("#f7f7f7") # type: ignore
+    fig.patch.set_facecolor("#f7f7f7")  # type: ignore
 
     pl.pause(0.01)
 
     axs.set_title("Transmit noise center frequency (Hz)", fontsize=10, pad=6)
-    slider = matplotlib.widgets.Slider( # type: ignore
+    slider = matplotlib.widgets.Slider(  # type: ignore
         axs,
         "",  # no external text label; use the value text instead
         0,
@@ -337,12 +344,14 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
 
     slider.on_changed(slider_changed)
 
-    filter_options = getattr(iiothread, "filter_options", ["sinc1", "sinc5", "sinc5+pf1"])
-    sel_filt       = getattr(iiothread, "selected_filter_type", filter_options[0])
-    active_idx     = filter_options.index(sel_filt) if sel_filt in filter_options else 0
-    ax_filt        = fig.add_axes([0.25, 0.07, 0.25, 0.12])
+    filter_options = getattr(
+        iiothread, "filter_options", ["sinc1", "sinc5", "sinc5+pf1"]
+    )
+    sel_filt = getattr(iiothread, "selected_filter_type", filter_options[0])
+    active_idx = filter_options.index(sel_filt) if sel_filt in filter_options else 0
+    ax_filt = fig.add_axes([0.125, 0.07, 0.25, 0.12])
     ax_filt.set_title("Filter type", fontsize=9, pad=3)
-    rb_filter      = matplotlib.widgets.RadioButtons(ax_filt, filter_options, active=active_idx) # type: ignore
+    rb_filter = matplotlib.widgets.RadioButtons(ax_filt, filter_options, active=active_idx)  # type: ignore
 
     def filter_changed(label):
         if hasattr(iiothread, "selected_filter_type"):
@@ -350,10 +359,11 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
 
     rb_filter.on_clicked(filter_changed)
 
-    ax_nw = fig.add_axes([0.63, 0.09, 0.25, 0.065])
-    tb_nw = matplotlib.widgets.TextBox( # type: ignore
-        ax_nw, "Noise width (Hz)",
-        initial=str(getattr(iiothread, "selected_noise_width", 10000))
+    ax_nw = fig.add_axes([0.50, 0.09, 0.18, 0.065])
+    tb_nw = matplotlib.widgets.TextBox(  # type: ignore
+        ax_nw,
+        "Noise width (Hz)",
+        initial=str(getattr(iiothread, "selected_noise_width", 10000)),
     )
 
     def noise_width_changed(text):
@@ -364,6 +374,31 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
             pass
 
     tb_nw.on_submit(noise_width_changed)
+
+    ax_na = fig.add_axes([0.75, 0.09, 0.15, 0.065])
+    tb_na = matplotlib.widgets.TextBox(  # type: ignore
+        ax_na,
+        "NSD (µV/√Hz)",
+        initial=f"{getattr(iiothread, 'selected_nsd', 1e-3) * 1e6:.0f}",
+    )
+
+    def noise_amplitude_changed(text):
+        try:
+            if hasattr(iiothread, "selected_nsd"):
+                nsd = float(text) * 1e-6  # µV/√Hz → V/√Hz
+                m2k_peak = getattr(iiothread, "_m2k_peak_v", 5.0)
+                width = getattr(iiothread, "selected_noise_width", 10000)
+                if nsd * np.sqrt(width) * 3 > m2k_peak:
+                    max_nsd = m2k_peak / (3.0 * np.sqrt(width))
+                    print(
+                        f"WARNING: NSD {nsd*1e6:.0f} µV/√Hz would exceed M2K ±{m2k_peak} V. Clamping to {max_nsd*1e6:.0f} µV/√Hz."
+                    )
+                    nsd = max_nsd
+                iiothread.selected_nsd = nsd
+        except ValueError:
+            pass
+
+    tb_na.on_submit(noise_amplitude_changed)
 
     fig.subplots_adjust(top=0.95, bottom=0.23, hspace=0.35)
     fig.canvas.draw()
@@ -424,17 +459,27 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
 
         if iiothread.received_center_frequency is not None:
             fc = iiothread.received_center_frequency
-            axf.annotate("Generated", xy=(fc, 0), xytext=(fc, 10),
-                         arrowprops=dict(facecolor="black", shrink=0.05),
-                         horizontalalignment="center")
+            axf.annotate(
+                "Generated",
+                xy=(fc, 0),
+                xytext=(fc, 10),
+                arrowprops=dict(facecolor="black", shrink=0.05),
+                horizontalalignment="center",
+            )
             if fc > fs_in // 2:
                 fold = fc // (fs_in // 2)
-                fa   = (fc - (fs_in // 2) * fold
-                        if fold % 2 == 0
-                        else (fs_in // 2) * (fold + 1) - fc)
-                axf.annotate("Aliased", xy=(fa, 0), xytext=(fa, 10),
-                             arrowprops=dict(facecolor="black", shrink=0.05),
-                             horizontalalignment="center")
+                fa = (
+                    fc - (fs_in // 2) * fold
+                    if fold % 2 == 0
+                    else (fs_in // 2) * (fold + 1) - fc
+                )
+                axf.annotate(
+                    "Aliased",
+                    xy=(fa, 0),
+                    xytext=(fa, 10),
+                    arrowprops=dict(facecolor="black", shrink=0.05),
+                    horizontalalignment="center",
+                )
 
         handles, labels = axf.get_legend_handles_labels()
         if handles:
