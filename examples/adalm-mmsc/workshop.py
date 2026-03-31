@@ -166,20 +166,42 @@ def fourier_analysis(
     return fft_results
 
 
-def generate_noise_band(center, width, fs):
-    """Generate a 1-second waveform of bandlimited white noise centered at `center` Hz, `width` Hz wide, normalized to 1 V RMS."""
-    noise_band_lo = int(max(center - width // 2, 1))
-    noise_band_hi = int(min(center + width // 2, fs // 2))
-    # FIXME: generate a shorter buffer instead of a full 1-second waveform
+def generate_noise_band(center, width, fs, amplitude=1.0, duration_s=0.25):
+    """Generate a bandlimited white-noise waveform centered at `center` Hz, `width` Hz wide.
+
+    The base waveform is normalized to 1 V RMS, then scaled by `amplitude`.
+    `duration_s` controls waveform duration (defaults to 0.25 s, i.e. < 1 s).
+    """
+    n_samples = max(256, int(fs * duration_s))
+    if n_samples % 2 != 0:
+        n_samples += 1
+
+    nyq = n_samples // 2
+    df = fs / n_samples
+    noise_band_lo_hz = max(center - width / 2.0, 1.0)
+    noise_band_hi_hz = min(center + width / 2.0, fs / 2.0)
+    lo_bin = int(max(np.floor(noise_band_lo_hz / df), 1))
+    hi_bin = int(min(np.ceil(noise_band_hi_hz / df), nyq))
+    if hi_bin <= lo_bin:
+        hi_bin = min(lo_bin + 1, nyq)
+        lo_bin = max(1, hi_bin - 1)
+
     spectrum = np.concatenate(
         (
-            np.zeros(noise_band_lo),
-            np.ones(noise_band_hi - noise_band_lo),
-            np.zeros(fs // 2 - noise_band_hi),
+            np.zeros(lo_bin),
+            np.ones(hi_bin - lo_bin),
+            np.zeros(nyq - hi_bin),
         )
     )
-    spectrum /= np.sqrt(noise_band_hi - noise_band_lo)
-    return time_points_from_freq(spectrum, fs=fs, density=True)
+    spectrum /= np.sqrt(max(1, hi_bin - lo_bin))
+    spectrum *= amplitude
+    time_points = time_points_from_freq(spectrum, fs=fs, density=True)
+    if np.any((time_points <= -3.0) | (time_points >= 3.0)):
+        print(
+            "WARNING: generated time_points exceed ±3.0 V "
+            f"(min={np.min(time_points):.3f} V, max={np.max(time_points):.3f} V)."
+        )
+    return time_points
 
 
 def plot_waveform_and_fft(name, waveform, fs, fft=None, freq_range=None, fignum=None):
@@ -359,7 +381,7 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
 
     rb_filter.on_clicked(filter_changed)
 
-    ax_nw = fig.add_axes([0.50, 0.09, 0.18, 0.065])
+    ax_nw = fig.add_axes([0.47, 0.12, 0.18, 0.065])
     tb_nw = matplotlib.widgets.TextBox(  # type: ignore
         ax_nw,
         "Noise width (Hz)",
@@ -369,31 +391,38 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
     def noise_width_changed(text):
         try:
             if hasattr(iiothread, "selected_noise_width"):
-                iiothread.selected_noise_width = int(float(text))
+                width = max(1, int(float(text)))
+                iiothread.selected_noise_width = width
+                if hasattr(iiothread, "selected_nsd"):
+                    nsd_db = float(getattr(iiothread, "selected_nsd_db", 0.0))
+                    nsd_ref = float(getattr(iiothread, "_nsd_ref_v_per_hz", 10e-6))
+                    iiothread.selected_nsd = nsd_ref * (10 ** (nsd_db / 20.0))
         except ValueError:
             pass
 
     tb_nw.on_submit(noise_width_changed)
 
-    ax_na = fig.add_axes([0.75, 0.09, 0.15, 0.065])
+    ax_na = fig.add_axes([0.75, 0.12, 0.15, 0.065])
     tb_na = matplotlib.widgets.TextBox(  # type: ignore
         ax_na,
-        "NSD (µV/√Hz)",
-        initial=f"{getattr(iiothread, 'selected_nsd', 1e-3) * 1e6:.0f}",
+        "NSD (µV/Hz)",
+        initial=f"{getattr(iiothread, 'selected_nsd_db', 0.0):.1f}",
     )
 
     def noise_amplitude_changed(text):
         try:
             if hasattr(iiothread, "selected_nsd"):
-                nsd = float(text) * 1e-6  # µV/√Hz → V/√Hz
+                nsd_db = float(text)
                 m2k_peak = getattr(iiothread, "_m2k_peak_v", 5.0)
-                width = getattr(iiothread, "selected_noise_width", 10000)
-                if nsd * np.sqrt(width) * 3 > m2k_peak:
-                    max_nsd = m2k_peak / (3.0 * np.sqrt(width))
+                width = max(1, int(getattr(iiothread, "selected_noise_width", 10000)))
+                max_nsd = m2k_peak / (3.0 * width)
+                nsd_ref = float(getattr(iiothread, "_nsd_ref_v_per_hz", 10e-6))
+                nsd = nsd_ref * (10 ** (nsd_db / 20.0))
+                if nsd > max_nsd:
                     print(
-                        f"WARNING: NSD {nsd*1e6:.0f} µV/√Hz would exceed M2K ±{m2k_peak} V. Clamping to {max_nsd*1e6:.0f} µV/√Hz."
+                        f"WARNING: NSD level {nsd_db:.1f} dB ({nsd*1e6:.1f} µV/Hz) exceeds the safe level for this width. The waveform limiter will keep M2K within range."
                     )
-                    nsd = max_nsd
+                iiothread.selected_nsd_db = nsd_db
                 iiothread.selected_nsd = nsd
         except ValueError:
             pass
