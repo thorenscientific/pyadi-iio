@@ -32,13 +32,20 @@ parser.add_argument(
 )
 args = vars(parser.parse_args())
 
-# 0. Configuration
+# Configuration
 fs_out = 7500000  # Generated waveform sample rate
 fs_in = 40000000  # Received waveform sample rate. AD4080 fixed at 40Msps
 
 # Tone parameters
 fsr = 2.0  # Full-scale range in Volts
 fund_freq = 100000.0  # Hz
+
+# Test limits
+
+rl_base = -1.55  # db from 100 kHz baseline to RL @ 500 kHz
+rm_base = -5.22  # db from 100 kHz baseline to RM @ 500 kHz
+rh_base = -12.16  # db from 100 kHz baseline to RH @ 500 kHz
+delta_tol = 2.5  # db tolerance
 
 
 # FFT parameters
@@ -138,7 +145,11 @@ data_in = data_in_raw * my_ad4080.channel[0].scale / 1e3  # Scale is in millivol
 fft_results = workshop.fourier_analysis(
     data_in, fundamental=fund_freq, sampling_rate=fs_in, window=window
 )
-if ((baseline - 4.5) < fft_results["A:mag_dbfs"] < (baseline - 2.0)) is False:
+if (
+    (rl_base - delta_tol)
+    < (fft_results["A:mag_dbfs"] - baseline)
+    < (rl_base + delta_tol)
+) is False:
     failed_tests.append("Failed 500 kHz RL test")
 
 results.append("500 kHz RL mag.: " + str(fft_results["A:mag_dbfs"]))
@@ -151,7 +162,11 @@ data_in = data_in_raw * my_ad4080.channel[0].scale / 1e3  # Scale is in millivol
 fft_results = workshop.fourier_analysis(
     data_in, fundamental=fund_freq, sampling_rate=fs_in, window=window
 )
-if ((baseline - 9.5) < fft_results["A:mag_dbfs"] < (baseline - 4.5)) is False:
+if (
+    (rm_base - delta_tol)
+    < (fft_results["A:mag_dbfs"] - baseline)
+    < (rm_base + delta_tol)
+) is False:
     failed_tests.append("Failed 500 kHz RM test")
 
 results.append("500 kHz RM mag.: " + str(fft_results["A:mag_dbfs"]))
@@ -163,7 +178,11 @@ data_in = data_in_raw * my_ad4080.channel[0].scale / 1e3  # Scale is in millivol
 fft_results = workshop.fourier_analysis(
     data_in, fundamental=fund_freq, sampling_rate=fs_in, window=window
 )
-if ((baseline - 17.0) < fft_results["A:mag_dbfs"] < (baseline - 12.0)) is False:
+if (
+    (rh_base - delta_tol)
+    < (fft_results["A:mag_dbfs"] - baseline)
+    < (rh_base + delta_tol)
+) is False:
     failed_tests.append("Failed 500 kHz RH test")
 
 results.append("500 kHz RH mag.: " + str(fft_results["A:mag_dbfs"]))
