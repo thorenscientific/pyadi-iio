@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 from matplotlib.widgets import Button, RadioButtons, TextBox  # type: ignore
 from scipy import signal  # type: ignore
-from sine_gen import *
-from workshop import time_points_from_freq
+from sine_gen import * # type: ignore
+from workshop import time_points_from_freq # type: ignore
 
 from adi import ad4080  # type: ignore
 
@@ -272,22 +272,20 @@ def run_noise_sweep(oversample_ratio, filter_type):
     ax_spec.set_ylabel("Voltage (V)")
     ax_spec.grid(True, alpha=0.4)
 
-    fig.canvas.draw_idle()
     fig.show()
     results_fig = fig
 
     fig2, (ax_noise, ax_nsd) = plt.subplots(2, 1, num=3, figsize=(9, 7))
     fig2.subplots_adjust(hspace=0.5)
 
-    f_pos = f_arr[1:]  # skip f=0 to avoid 1/f² singularity
+    f_pos = f_arr[1:]  # skip f=0
     df = float(f_pos[1] - f_pos[0]) if len(f_pos) > 1 else 1000.0
 
-    white_integrated = np.sqrt(np.cumsum(np.ones_like(f_pos)) * df)  # flat PSD → √BW
+    # Rectangular-noise basis: flat input PSD integrated through the selected sinc filter
+    white_integrated = np.sqrt(np.cumsum(np.ones_like(f_pos)) * df)  # rectangular input
     sincN_integrated = np.sqrt(
         np.cumsum(np.sinc(f_pos / fnotch) ** (2 * sinc_order)) * df
-    )
-    pink_integrated = np.sqrt(np.cumsum(1.0 / f_pos) * df)  # 1/f → √ln BW
-    red_integrated = np.sqrt(np.cumsum(1.0 / f_pos ** 2) * df)  # 1/f² → saturates
+    )  # output: flat PSD × |H(f)|² with H(f)=sinc^N
 
     # Scale each reference curve to the measured midpoint for log-log comparison
     a_pos = amps_arr[1:]
@@ -309,35 +307,21 @@ def run_noise_sweep(oversample_ratio, filter_type):
         linewidth=2,
         marker="o",
         ms=2,
-        label="Measured",
+        label="Measured integrated noise",
     )
     ax_noise.loglog(
         f_pos,
         _scale_mid(white_integrated),
         linestyle="--",
         color="gray",
-        label="White  [slope ½ on log-log]",
+        label="Rectangular input (flat PSD)",
     )
     ax_noise.loglog(
         f_pos,
         _scale_mid(sincN_integrated),
         linestyle="--",
         color="r",
-        label=f"White × sinc{sinc_order}  [notch={fnotch/1e3:.1f} kHz]",
-    )
-    ax_noise.loglog(
-        f_pos,
-        _scale_mid(pink_integrated),
-        linestyle="--",
-        color="purple",
-        label="1/f pink  [flattens]",
-    )
-    ax_noise.loglog(
-        f_pos,
-        _scale_mid(red_integrated),
-        linestyle="--",
-        color="steelblue",
-        label="1/f² red  [saturates quickly]",
+        label=f"Rectangular input × sinc{sinc_order}",
     )
     ax_noise.axvline(
         x=fnotch,
@@ -359,7 +343,7 @@ def run_noise_sweep(oversample_ratio, filter_type):
     rms_sq_diff[-1] = rms_sq_diff[-2]
     noise_density = np.sqrt(np.abs(rms_sq_diff) / df)
 
-    # Overlay sinc1/3/5 models; bold the selected order
+    # Rectangular-band basis NSD model: flat input NSD shaped by selected sinc response
     def _nsd_curve(order):  # |sinc(f/fnotch)|^N amplitude response
         return np.abs(np.sinc(f_arr / fnotch)) ** order
 
@@ -369,14 +353,6 @@ def run_noise_sweep(oversample_ratio, filter_type):
             np.nanmedian(noise_density[valid] / ref[valid]) if valid.any() else 1.0
         )
 
-    # Keys are filter_type strings; values are (sinc_order, color, label).
-    # sinc5+pf1 uses order=5 as an approximation (pf1 coefficients aren't exposed).
-    _nsd_styles = {
-        "sinc1": (1, "#0077cc", "sinc1"),
-        "sinc5": (5, "#dd2222", "sinc5"),
-        "sinc5+pf1": (5, "#ff8800", "sinc5+pf1"),
-    }
-
     ax_nsd.semilogy(
         f_arr,
         noise_density,
@@ -385,21 +361,19 @@ def run_noise_sweep(oversample_ratio, filter_type):
         linewidth=1.5,
         marker="o",
         ms=2,
-        label="Measured NSD (V/√Hz)",
+        label="Measured NSD",
     )
 
-    for filt_name, (ord_, col, lbl) in _nsd_styles.items():
-        curve = _nsd_curve(ord_)
-        is_sel = filt_name.lower() == filter_type.lower()
-        ax_nsd.semilogy(
-            f_arr,
-            _nsd_scale(curve),
-            linestyle="--",
-            color=col,
-            linewidth=2.5 if is_sel else 0.9,
-            alpha=1.0 if is_sel else 0.45,
-            label=f"{lbl}  ← selected" if is_sel else lbl,
-        )
+    ax_nsd.semilogy(
+        f_arr,
+
+        _nsd_scale(_nsd_curve(sinc_order)),
+        linestyle="--",
+        color="r",
+        linewidth=2.2,
+        alpha=1.0,
+        label=f"Rectangular input × {filter_type}",
+    )
 
     ax_nsd.axvline(
         x=fnotch,
@@ -419,7 +393,7 @@ def run_noise_sweep(oversample_ratio, filter_type):
     )
     ax_nsd.set_title(
         f"Incremental NSD — selected: {filter_type}, notch={fnotch/1e3:.1f} kHz\n"
-        "Correct match = measured (black) overlaps the highlighted model",
+        "Rectangular-basis check: measured (black) should overlap the red model",
         fontsize=9,
     )
     ax_nsd.set_xlabel("Frequency (Hz)")
@@ -427,7 +401,6 @@ def run_noise_sweep(oversample_ratio, filter_type):
     ax_nsd.legend(fontsize=7)
     ax_nsd.grid(True, which="both", alpha=0.3)
 
-    fig2.canvas.draw_idle()
     fig2.show()
     noise_fig = fig2
 
