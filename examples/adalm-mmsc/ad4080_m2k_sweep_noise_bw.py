@@ -198,7 +198,7 @@ def run_noise_sweep(oversample_ratio, filter_type):
 
     siggen = my_m2k.getAnalogOut()
 
-    siggen_sr = 7500000  # 750 kHz
+    siggen_sr = 7500000  # 7.5 MHz
     n = 2 ** 18
     bin_width = siggen_sr / n
 
@@ -226,9 +226,9 @@ def run_noise_sweep(oversample_ratio, filter_type):
             f"[Filter] WARNING: requested '{filter_type}' but ADC reports '{actual_filter}'"
         )
 
-    fs, amps = [], []
+    sweep_freqs, sweep_amps = [], []
     vref = 5.0
-    en = 1000e-6
+    noise_bin_amplitude = 1000e-6  # V amplitude per frequency bin
 
     if hasattr(my_adc, "channel") and len(my_adc.channel) > 0:
         _v_per_code = my_adc.channel[0].scale / 1e6
@@ -236,11 +236,11 @@ def run_noise_sweep(oversample_ratio, filter_type):
         _v_per_code = 2.0 * vref / (2 ** 20)
     print(f"[Scaling] {_v_per_code:.4e} V/LSB  (FSR={_v_per_code * 2**20:.3f} V p-p)")
 
-    for f in range(0, 100000, 1000):  # Sweep 0 to 100 kHz in 1 kHz steps
+    for f in range(0, 100000, 1000):  # Sweep 0 to 99 kHz in 1 kHz steps
         noiseband = np.zeros(n)
         maxbin = int(2 * f / bin_width)
         noiseband[0:maxbin] = np.ones(maxbin)
-        noiseband *= en
+        noiseband *= noise_bin_amplitude
         time_points = time_points_from_freq(noiseband, siggen_sr, True)
         buffer = [time_points, time_points * -1.0]
 
@@ -259,11 +259,11 @@ def run_noise_sweep(oversample_ratio, filter_type):
         ac = voltage - dc
         rms = np.std(ac)  # std == RMS for zero-mean signal
 
-        fs.append(f)
-        amps.append(rms)
+        sweep_freqs.append(f)
+        sweep_amps.append(rms)
 
-    f_arr = np.array(fs, dtype=float)
-    amps_arr = np.array(amps)
+    f_arr = np.array(sweep_freqs, dtype=float)
+    amps_arr = np.array(sweep_amps)
 
     # Close previous results windows before creating new ones
     for _fig in (results_fig, noise_fig):
@@ -391,7 +391,6 @@ def run_noise_sweep(oversample_ratio, filter_type):
 
     ax_nsd.semilogy(
         f_arr,
-
         _nsd_scale(_nsd_curve(sinc_order)),
         linestyle="--",
         color="r",

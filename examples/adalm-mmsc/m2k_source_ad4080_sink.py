@@ -55,7 +55,7 @@ def scan_m2k_devices():
     try:
         contexts = libm2k.getAllContexts()
         return contexts if contexts else []
-    except:
+    except Exception:
         return []
 
 
@@ -124,14 +124,13 @@ class ConfigDialog:
             self.ad4080_port = tk.StringVar(
                 value=available_ports[0] if "COM12" not in available_ports else "COM12"
             )
-            port_combo = ttk.Combobox(
+            ttk.Combobox(
                 parent,
                 textvariable=self.ad4080_port,
                 values=available_ports,
                 width=18,
                 state="readonly",
-            )
-            port_combo.grid(row=row, column=1, sticky="w")
+            ).grid(row=row, column=1, sticky="w")
         else:
             # Fallback to text entry if no ports found
             self.ad4080_port = tk.StringVar(value="COM12")

@@ -59,7 +59,7 @@ def scan_m2k_devices():
     try:
         contexts = libm2k.getAllContexts()
         return contexts if contexts else []
-    except:
+    except Exception:
         return []
 
 
@@ -363,7 +363,7 @@ def run_sweep(
         last_frequency_axis = frequency_axis
         last_spectrum_abs = np.sqrt(power_spectrum)
 
-    sweep_response_db = 20 * np.log10(np.array(sweep_rms_values) / np.sqrt(4.0))
+    sweep_response_db = 20 * np.log10(np.array(sweep_rms_values) / amplitude)
     return (
         sweep_frequencies_hz,
         sweep_response_db,

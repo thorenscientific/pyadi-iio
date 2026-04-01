@@ -134,7 +134,7 @@ def fourier_analysis(
     # Plot FFT
     fig = pl.figure(1)
     fig.canvas.mpl_connect("close_event", goodbye)
-    fftax = pl.subplot2grid((1, 1), (0, 0), rowspan=2, colspan=2)
+    ax = pl.subplot2grid((1, 1), (0, 0), rowspan=2, colspan=2)
     pl.title("FFT")
     pl.plot(freq_axis, fft_db)
     pl.grid(True)
@@ -145,7 +145,7 @@ def fourier_analysis(
     for x, y, label in annots["labels"]:
         pl.annotate(label, xy=(x, y), ha="center", va="bottom")
     for box in annots["tone_boxes"]:
-        fftax.add_patch(
+        ax.add_patch(
             MPRect(
                 (box[0], box[1]),
                 box[2],
@@ -253,9 +253,9 @@ def plot_sinc1_folded(decimation, fs_in):
 
 
 def plot_waveform_fft_sinc1_unfolded(waveform, fft, fs, generated_freq, decimation):
-    """ Plot received waveform, plot FFT and a number of unfolded copies (up to
+    """Plot received waveform, plot FFT and a number of unfolded copies (up to
     nyquist*5), plot sinc1 response over the whole frequency range, annotate
-    generated and aliased frequency. """
+    generated and aliased frequency."""
 
     fig = pl.figure(2, figsize=(10, 10))
     fig.canvas.mpl_connect("close_event", goodbye)
@@ -269,10 +269,8 @@ def plot_waveform_fft_sinc1_unfolded(waveform, fft, fs, generated_freq, decimati
     pl.ylim(-5, 5)
     pl.grid(True)
 
-    # Compute frequency axis
     freq_axis = gn.freq_axis((len(fft) - 1) * 2, gn.FreqAxisType.REAL, fs)
 
-    # Plot FFT
     ax = pl.subplot(2, 1, 2)
     ax.clear()
     pl.title(f"'Unfolded' FFT, {decimation=}, noise band center={generated_freq}")
@@ -280,7 +278,6 @@ def plot_waveform_fft_sinc1_unfolded(waveform, fft, fs, generated_freq, decimati
     pl.ylim(-110, 10)
     pl.grid(True)
 
-    # Plot unfolded signal spectrum and theoretical sinc
     for fold in range(5):
         freqs = freq_axis + fold * (fs // 2 + 1)
         sinc1 = gn.db(np.complex128(np.sinc(freqs / fs))) - 10
@@ -289,21 +286,19 @@ def plot_waveform_fft_sinc1_unfolded(waveform, fft, fs, generated_freq, decimati
             freqs,
             sinc1,
             "r--" if fold > 0 else "r",
-            alpha=0.75 ** fold,  # Color fade
-            label=f"Theoretical sinc1 response",
+            alpha=0.75 ** fold,
+            label="Theoretical sinc1 response",
         )
         pl.plot(
             freqs,
             fft[:: (-1) ** fold],
             "b--" if fold > 0 else "b",
-            alpha=0.75 ** fold,  # Color fade
-            label=f"Unfolded signal FFT" if fold > 0 else "Signal FFT",
+            alpha=0.75 ** fold,
+            label="Unfolded signal FFT" if fold > 0 else "Signal FFT",
         )
 
-    # x tick at nyquist
     pl.axvline(fs // 2, linestyle="--", color="k")
 
-    # arrow at generated tone
     pl.annotate(
         "Generated",
         xy=(generated_freq, -10),

@@ -248,7 +248,6 @@ M2K_PEAK_V = 5.0
 NSD_DB_REF_UV_PER_HZ = 10.0
 _nsd_ref = NSD_DB_REF_UV_PER_HZ * 1e-6  # µV/Hz -> V/Hz
 _width = max(1, int(args["noise_width"]))
-_max_nsd = M2K_PEAK_V / (3.0 * _width)
 if args["nsd"] is None:
     _nsd_db = float(args.get("nsd_db", 0.0))
     _nsd = _nsd_ref * (10 ** (_nsd_db / 20.0))
@@ -258,11 +257,13 @@ if _nsd <= 0:
     _nsd_db = -120.0
 else:
     _nsd_db = 20.0 * np.log10(_nsd / _nsd_ref)
+_max_nsd = M2K_PEAK_V / (3.0 * _width)
 if _nsd > _max_nsd:
     print(
         f"WARNING: NSD {_nsd:.2e} V/Hz with width {args['noise_width']} Hz exceeds the nominal safe level {_max_nsd:.2e} V/Hz. "
         "Waveform limiting will keep the M2K output in range."
     )
+del _max_nsd  # not needed beyond startup check
 
 # FFT parameters
 window = gn.Window.BLACKMAN_HARRIS
@@ -382,7 +383,7 @@ class IIOThread(Thread):
                 raise
             self.received_center_frequency = transmitting_center_frequency
 
-            din = din_raw * my_ad4080.channel[0].scale / 1e3  # ÂµV/code â V
+            din = din_raw * my_ad4080.channel[0].scale / 1e3  # µV/code -> V
             din -= np.average(din)
             self.data_in = din
 

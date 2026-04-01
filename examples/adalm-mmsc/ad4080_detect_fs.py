@@ -163,7 +163,7 @@ ax1.legend()
 # Set-up transmittance plot
 ax2.set_title("FFT, calculated Fs = ")
 
-(line2,) = ax2.plot(data[: len(data) // 2], label="freq. domain")
+(line2,) = ax2.plot([], [], label="freq. domain")
 ax2.set_xlabel("Frequency Bin")
 ax2.set_ylabel("Magnitude (dB)")
 ax2.legend()
@@ -217,19 +217,19 @@ def update_frequency(text):
 
         # Validate reasonable frequency range
         if new_freq <= 0:
-            print("\\n[Error: Frequency must be positive]")
+            print("\n[Error: Frequency must be positive]")
             freq_textbox.set_val(
                 str(input_frequency / 1000)
             )  # Reset to previous valid value
         elif new_freq < 1000:  # Less than 1 kHz
             print(
-                f"\\n[Warning: Frequency very low ({new_freq_khz:.1f} kHz). Proceed with caution.]"
+                f"\n[Warning: Frequency very low ({new_freq_khz:.1f} kHz). Proceed with caution.]"
             )
             input_frequency = new_freq
-            print(f"[Updated input frequency to {new_freq_khz:.1f} kHz]")
+            print(f"\n[Updated input frequency to {new_freq_khz:.1f} kHz]")
         elif new_freq > my_adc.sampling_frequency / 2:  # Above Nyquist
             print(
-                f"\\n[Error: Frequency ({new_freq_khz:.1f} kHz) exceeds Nyquist limit ({my_adc.sampling_frequency/2000:.1f} kHz)]"
+                f"\n[Error: Frequency ({new_freq_khz:.1f} kHz) exceeds Nyquist limit ({my_adc.sampling_frequency/2000:.1f} kHz)]"
             )
             print("[Frequency should be less than half the sample rate]")
             freq_textbox.set_val(
@@ -237,7 +237,7 @@ def update_frequency(text):
             )  # Reset to previous valid value
         else:
             input_frequency = new_freq
-            print(f"\\n[Updated input frequency to {new_freq_khz:.1f} kHz]")
+            print(f"\n[Updated input frequency to {new_freq_khz:.1f} kHz]")
     except ValueError:
         print(f"\n[Error: Invalid input '{text}' - please enter a number]")
         freq_textbox.set_val(
