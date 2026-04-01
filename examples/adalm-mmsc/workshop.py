@@ -376,8 +376,7 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
     rb_filter = matplotlib.widgets.RadioButtons(ax_filt, filter_options, active=active_idx)  # type: ignore
 
     def filter_changed(label):
-        if hasattr(iiothread, "selected_filter_type"):
-            iiothread.selected_filter_type = label
+        iiothread.selected_filter_type = label
 
     rb_filter.on_clicked(filter_changed)
 
@@ -390,13 +389,11 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
 
     def noise_width_changed(text):
         try:
-            if hasattr(iiothread, "selected_noise_width"):
-                width = max(1, int(float(text)))
-                iiothread.selected_noise_width = width
-                if hasattr(iiothread, "selected_nsd"):
-                    nsd_db = float(getattr(iiothread, "selected_nsd_db", 0.0))
-                    nsd_ref = float(getattr(iiothread, "_nsd_ref_v_per_hz", 10e-6))
-                    iiothread.selected_nsd = nsd_ref * (10 ** (nsd_db / 20.0))
+            width = max(1, int(float(text)))
+            iiothread.selected_noise_width = width
+            nsd_db = float(iiothread.selected_nsd_db)
+            nsd_ref = float(iiothread._nsd_ref_v_per_hz)
+            iiothread.selected_nsd = nsd_ref * (10 ** (nsd_db / 20.0))
         except ValueError:
             pass
 
@@ -411,19 +408,18 @@ def interactive_sinc_folding_ui(fs_in, npts, nfft, iiothread):
 
     def noise_amplitude_changed(text):
         try:
-            if hasattr(iiothread, "selected_nsd"):
-                nsd_db = float(text)
-                m2k_peak = getattr(iiothread, "_m2k_peak_v", 5.0)
-                width = max(1, int(getattr(iiothread, "selected_noise_width", 10000)))
-                max_nsd = m2k_peak / (3.0 * width)
-                nsd_ref = float(getattr(iiothread, "_nsd_ref_v_per_hz", 10e-6))
-                nsd = nsd_ref * (10 ** (nsd_db / 20.0))
-                if nsd > max_nsd:
-                    print(
-                        f"WARNING: NSD level {nsd_db:.1f} dB ({nsd*1e6:.1f} µV/Hz) exceeds the safe level for this width. The waveform limiter will keep M2K within range."
-                    )
-                iiothread.selected_nsd_db = nsd_db
-                iiothread.selected_nsd = nsd
+            nsd_db = float(text)
+            m2k_peak = iiothread._m2k_peak_v
+            width = max(1, int(iiothread.selected_noise_width))
+            max_nsd = m2k_peak / (3.0 * width)
+            nsd_ref = float(iiothread._nsd_ref_v_per_hz)
+            nsd = nsd_ref * (10 ** (nsd_db / 20.0))
+            if nsd > max_nsd:
+                print(
+                    f"WARNING: NSD level {nsd_db:.1f} dB ({nsd*1e6:.1f} µV/Hz) exceeds the safe level for this width. The waveform limiter will keep M2K within range."
+                )
+            iiothread.selected_nsd_db = nsd_db
+            iiothread.selected_nsd = nsd
         except ValueError:
             pass
 

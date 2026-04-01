@@ -71,14 +71,13 @@ class PortSelectionDialog:
             self.com_port = tk.StringVar(
                 value="COM12" if "COM12" in available_ports else available_ports[0]
             )
-            port_combo = ttk.Combobox(
+            ttk.Combobox(
                 main_frame,
                 textvariable=self.com_port,
                 values=available_ports,
                 width=20,
                 state="readonly",
-            )
-            port_combo.grid(row=0, column=1, sticky="w", padx=5)
+            ).grid(row=0, column=1, sticky="w", padx=5)
         else:
             self.com_port = tk.StringVar(value="COM12")
             ttk.Entry(main_frame, textvariable=self.com_port, width=22).grid(
@@ -152,11 +151,10 @@ ax2 = fig.add_subplot(gs[1, :])
 
 # Set-up time domain plot
 ax1.set_title("Time Domain")
-adc_samples = data
 # Add margin around min/max for better visibility
 margin = (max(data) - min(data)) * 0.2
 ax1.set_ylim([min(data) - margin, max(data) + margin])  # type: ignore
-(line1,) = ax1.plot(adc_samples, label="time domain")
+(line1,) = ax1.plot(data, label="time domain")
 ax1.set_xlabel("Sample")
 ax1.set_ylabel("ADC Code")
 ax1.grid(True)
@@ -165,7 +163,7 @@ ax1.legend()
 # Set-up transmittance plot
 ax2.set_title("FFT, calculated Fs = ")
 
-(line2,) = ax2.plot(adc_samples[: len(adc_samples) // 2], label="freq. domain")
+(line2,) = ax2.plot(data[: len(data) // 2], label="freq. domain")
 ax2.set_xlabel("Frequency Bin")
 ax2.set_ylabel("Magnitude (dB)")
 ax2.legend()

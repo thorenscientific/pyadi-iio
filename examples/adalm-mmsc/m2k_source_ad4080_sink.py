@@ -41,10 +41,8 @@ import libm2k  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 import serial.tools.list_ports  # type: ignore
-import workshop
-
+import workshop # type: ignore
 import adi  # type: ignore
-
 
 def scan_com_ports():
     """Scan for available COM ports without opening them"""
@@ -285,7 +283,6 @@ for harmonic in range(len(harm_dbfs)):
     awf += gn.cos(npts, fs_out, harm_ampl[harmonic], freq, 0, 0, 0)
 
 for tone in range(len(noise_freqs)):
-    freq = noise_freqs[tone]
     freq = gn.coherent(nfft, fs_out, noise_freqs[tone])
 
     print(f"Noise Frequency: {freq} ({noise_dbfs[tone]} dBfs)")
@@ -310,29 +307,49 @@ print(f"\nAD4080 received data stats:")
 print(
     f"  Raw ADC codes - Min: {np.min(data_in_raw)}, Max: {np.max(data_in_raw)}, Range: {np.ptp(data_in_raw)}"
 )
-print(f"  Scale factor: {my_ad4080.channel[0].scale} µV/code")
+raw_scale = float(my_ad4080.channel[0].scale)
+print(f"  Reported scale factor: {raw_scale} (driver units unknown)")
 
-# Convert ADC codes to Volts
-data_in = data_in_raw * my_ad4080.channel[0].scale / 1e6  # Scale is in microvolts/code
+# Interpret the reported scale in likely units and choose the most plausible one.
+# Many IIO drivers use mV/code, but some use V/code or uV/code.
+scale_candidates = {
+    "V/code": raw_scale,
+    "mV/code": raw_scale / 1e3,
+    "uV/code": raw_scale / 1e6,
+}
 
+target_vpp = max(np.ptp(awf), 1e-12)  # DAC waveform p-p in Volts
+best_unit = "uV/code"
+best_v_per_code = scale_candidates[best_unit]
+best_score = float("inf")
+
+for unit_name, v_per_code in scale_candidates.items():
+    measured_vpp = np.ptp(data_in_raw * v_per_code)
+    score = abs(np.log10(max(measured_vpp, 1e-12) / target_vpp))
+    if score < best_score:
+        best_score = score
+        best_unit = unit_name
+        best_v_per_code = v_per_code
+
+data_in = data_in_raw * best_v_per_code
+
+print(f"  Inferred scale interpretation: {best_unit}")
+print(f"  Using {best_v_per_code:.6e} V/code")
 print(
     f"  Converted to Volts - Min: {np.min(data_in):.6f} V, Max: {np.max(data_in):.6f} V, Peak-to-Peak: {np.ptp(data_in):.6f} V"
 )
-print(f"  Expected input from M2K: ~1.65 V peak-to-peak")
+print(f"  M2K output waveform peak-to-peak: {np.ptp(awf):.6f} V")
 print(f"  Script assumes FSR: {fsr} V (±{fsr/2} V)")
 
-# Apply scale correction factor - the AD4080 scale is incorrect by ~3000x
-# Actual peak-to-peak is ~1.65V but driver reports ~0.0005V
-scale_correction = 3043.0  # Measured from actual vs expected signal levels
-data_in_corrected = data_in * scale_correction
-
-print(
-    f"  After scale correction (×{scale_correction:.0f}): Peak-to-Peak: {np.ptp(data_in_corrected):.6f} V"
-)
+ratio = np.ptp(data_in) / target_vpp
+if ratio < 0.1 or ratio > 10:
+    print(
+        "  WARNING: ADC amplitude is far from DAC amplitude. Check analog attenuation/gain path and ADC input mode."
+    )
 
 # Normalize waveform so that full-scale corresponds to 0 dBFS for genalyzer
 # This matches the assumption in workshop.fourier_analysis (fund_ampl = 10**(-3/20))
-data_fs = data_in_corrected / (fsr / 2.0)
+data_fs = data_in / (fsr / 2.0)
 
 del my_ad4080
 del my_m2k
