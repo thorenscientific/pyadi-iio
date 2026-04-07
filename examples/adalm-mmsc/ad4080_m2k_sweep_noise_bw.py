@@ -160,8 +160,7 @@ print(f"AD4080: {my_uri}  M2K: {m2k_uri}")
 
 
 my_adc = None
-results_fig = None  # Figure 2: time-domain + spectrum
-noise_fig = None  # Figure 3: integrated noise + NSD
+ax_noise = None  # Persistent noise plot axes (embedded in control window)
 try:
     my_adc = ad4080(uri=my_uri, device_name="ad4080")
     try:
@@ -179,9 +178,10 @@ except Exception as e:
     sampling_frequency = 40000000.0
 
 
-def run_noise_sweep(oversample_ratio, filter_type):
+def run_noise_sweep(oversample_ratio, filter_type, freq_start=0, freq_stop=99000, freq_step=1000):
     """Configure ADC and run the noise bandwidth sweep, then plot results."""
-    global my_adc, results_fig, noise_fig
+    global my_adc, ax_noise
+    assert ax_noise is not None, "ax_noise not yet initialised"
 
     if my_adc is None:
         print("Cannot run sweep: AD4080 not available")
@@ -236,7 +236,8 @@ def run_noise_sweep(oversample_ratio, filter_type):
         _v_per_code = 2.0 * vref / (2 ** 20)
     print(f"[Scaling] {_v_per_code:.4e} V/LSB  (FSR={_v_per_code * 2**20:.3f} V p-p)")
 
-    for f in range(0, 100000, 1000):  # Sweep 0 to 99 kHz in 1 kHz steps
+    print(f"[Sweep] start={freq_start} Hz, stop={freq_stop} Hz, step={freq_step} Hz")
+    for f in range(freq_start, freq_stop + 1, freq_step):
         noiseband = np.zeros(n)
         maxbin = int(2 * f / bin_width)
         noiseband[0:maxbin] = np.ones(maxbin)
@@ -265,43 +266,8 @@ def run_noise_sweep(oversample_ratio, filter_type):
     f_arr = np.array(sweep_freqs, dtype=float)
     amps_arr = np.array(sweep_amps)
 
-    # Close previous results windows before creating new ones
-    for _fig in (results_fig, noise_fig):
-        if _fig is not None:
-            try:
-                plt.close(_fig)
-            except Exception:
-                pass
-    results_fig = None
-    noise_fig = None
-
     plt.rcParams.update({"font.size": 7})
-
-    fig, (ax_td, ax_spec) = plt.subplots(2, 1, num=2, figsize=(9, 6))
-    fig.subplots_adjust(hspace=0.5)
-
-    ax_td.set_title("AD4080 Time Domain Data (last sweep point)")
-    ax_td.plot(x, voltage)
-    ax_td.set_xlabel("Sample")
-    ax_td.set_ylabel("Voltage (V)")
-    ax_td.grid(True, alpha=0.4)
-
-    f_axis, Pxx_spec = signal.periodogram(
-        ac, sampling_frequency, window="flattop", scaling="spectrum"
-    )
-    Pxx_abs = np.sqrt(Pxx_spec)
-    ax_spec.set_title("AD4080 Spectrum — Volts absolute (last sweep point)")
-    ax_spec.semilogy(f_axis, Pxx_abs)
-    ax_spec.set_ylim([1e-6, 4])
-    ax_spec.set_xlabel("Frequency (Hz)")
-    ax_spec.set_ylabel("Voltage (V)")
-    ax_spec.grid(True, alpha=0.4)
-
-    fig.show()
-    results_fig = fig
-
-    fig2, (ax_noise, ax_nsd) = plt.subplots(2, 1, num=3, figsize=(9, 7))
-    fig2.subplots_adjust(hspace=0.5)
+    ax_noise.cla()
 
     f_pos = f_arr[1:]  # skip f=0
     df = float(f_pos[1] - f_pos[0]) if len(f_pos) > 1 else 1000.0
@@ -311,8 +277,10 @@ def run_noise_sweep(oversample_ratio, filter_type):
     sincN_integrated = np.sqrt(
         np.cumsum(np.sinc(f_pos / fnotch) ** (2 * sinc_order)) * df
     )  # output: flat PSD × |H(f)|² with H(f)=sinc^N
+    # Raw (non-integrated) filter magnitude responses
+    sinc1_response = np.abs(np.sinc(f_pos / fnotch))        # |sinc(f/fnotch)|
+    sinc2_response = np.abs(np.sinc(f_pos / fnotch)) ** 2    # |sinc(f/fnotch)|²
 
-    # Scale each reference curve to the measured midpoint for log-log comparison
     a_pos = amps_arr[1:]
     mid_idx = len(f_pos) // 2
 
@@ -324,7 +292,7 @@ def run_noise_sweep(oversample_ratio, filter_type):
         f"{filter_type.upper()}, notch={fnotch/1e3:.1f} kHz"
     )
     ax_noise.set_title(title, fontsize=9)
-    ax_noise.loglog(
+    ax_noise.plot(
         f_pos,
         a_pos,
         linestyle="solid",
@@ -334,20 +302,42 @@ def run_noise_sweep(oversample_ratio, filter_type):
         ms=2,
         label="Measured integrated noise",
     )
-    ax_noise.loglog(
+    ax_noise.plot(
         f_pos,
         _scale_mid(white_integrated),
         linestyle="--",
         color="gray",
         label="Rectangular input (flat PSD)",
     )
-    ax_noise.loglog(
+    ax_noise.plot(
         f_pos,
         _scale_mid(sincN_integrated),
         linestyle="--",
         color="r",
         label=f"Rectangular input × sinc{sinc_order}",
     )
+
+    # Raw filter responses on a secondary y-axis (different scale)
+    ax_filt = ax_noise.twinx()
+    ax_filt.plot(
+        f_pos,
+        sinc1_response,
+        linestyle="-.",
+        color="steelblue",
+        linewidth=1.5,
+        label="Sinc filter response",
+    )
+    ax_filt.plot(
+        f_pos,
+        sinc2_response,
+        linestyle="-.",
+        color="darkorange",
+        linewidth=1.5,
+        label="Sinc² filter response",
+    )
+    ax_filt.set_ylabel("Filter magnitude", fontsize=7)
+    ax_filt.set_ylim([-0.05, 1.05]) # type: ignore
+
     ax_noise.axvline(
         x=fnotch,
         color="r",
@@ -356,91 +346,32 @@ def run_noise_sweep(oversample_ratio, filter_type):
         alpha=0.6,
         label=f"Notch {fnotch/1e3:.1f} kHz",
     )
-    ax_noise.legend(fontsize=7, loc="lower right")
-    ax_noise.set_xlabel("Noise BW, from DC to [Hz]")
+    # Combine legends from both axes
+    lines1, labels1 = ax_noise.get_legend_handles_labels()
+    lines2, labels2 = ax_filt.get_legend_handles_labels()
+    ax_noise.legend(lines1 + lines2, labels1 + labels2, fontsize=7, loc="center right")
     ax_noise.set_ylabel("Integrated noise (V rms)")
     ax_noise.grid(True, which="both", alpha=0.3)
 
-    rms_sq = amps_arr ** 2
-    rms_sq_diff = np.empty_like(rms_sq)
-    rms_sq_diff[1:-1] = (rms_sq[2:] - rms_sq[:-2]) / 2.0  # central diff
-    rms_sq_diff[0] = rms_sq_diff[1]
-    rms_sq_diff[-1] = rms_sq_diff[-2]
-    noise_density = np.sqrt(np.abs(rms_sq_diff) / df)
-
-    # Rectangular-band basis NSD model: flat input NSD shaped by selected sinc response
-    def _nsd_curve(order):  # |sinc(f/fnotch)|^N amplitude response
-        return np.abs(np.sinc(f_arr / fnotch)) ** order
-
-    def _nsd_scale(ref):  # median-scale model to measured data
-        valid = (noise_density > 0) & (ref > 0)
-        return ref * (
-            np.nanmedian(noise_density[valid] / ref[valid]) if valid.any() else 1.0
-        )
-
-    ax_nsd.semilogy(
-        f_arr,
-        noise_density,
-        linestyle="solid",
-        color="k",
-        linewidth=1.5,
-        marker="o",
-        ms=2,
-        label="Measured NSD",
-    )
-
-    ax_nsd.semilogy(
-        f_arr,
-        _nsd_scale(_nsd_curve(sinc_order)),
-        linestyle="--",
-        color="r",
-        linewidth=2.2,
-        alpha=1.0,
-        label=f"Rectangular input × {filter_type}",
-    )
-
-    ax_nsd.axvline(
-        x=fnotch,
-        color="r",
-        linestyle=":",
-        linewidth=1.2,
-        alpha=0.8,
-        label=f"Notch  {fnotch/1e3:.1f} kHz",
-    )
-    ax_nsd.axvline(
-        x=fnotch / 2,
-        color="orange",
-        linestyle=":",
-        linewidth=1.2,
-        alpha=0.8,
-        label=f"Nyquist  {fnotch/2e3:.1f} kHz",
-    )
-    ax_nsd.set_title(
-        f"Incremental NSD — selected: {filter_type}, notch={fnotch/1e3:.1f} kHz\n"
-        "Rectangular-basis check: measured (black) should overlap the red model",
-        fontsize=9,
-    )
-    ax_nsd.set_xlabel("Frequency (Hz)")
-    ax_nsd.set_ylabel("NSD (V/√Hz)")
-    ax_nsd.legend(fontsize=7)
-    ax_nsd.grid(True, which="both", alpha=0.3)
-
-    fig2.show()
-    noise_fig = fig2
+    fig_ctrl.canvas.draw_idle()
 
     # Clean up M2K after the sweep completes
     siggen.stop()
     libm2k.contextClose(my_m2k)
 
 
-# Simple control window: choose OSR and filter, then start sweep
+fig_ctrl, ax_noise = plt.subplots(1, 1, num=1, figsize=(12, 6))
+fig_ctrl.subplots_adjust(left=0.10, right=0.95, bottom=0.28, top=0.95)
 
-fig_ctrl, ax_ctrl = plt.subplots(num=1, figsize=(5, 3))
-fig_ctrl.subplots_adjust(left=0.05, right=0.95, top=0.85, bottom=0.25)
-ax_ctrl.axis("off")
-ax_ctrl.set_title("Noise BW Sweep Setup")
+ax_noise.set_ylabel("Integrated noise (V rms)")
+ax_noise.grid(True, which="both", alpha=0.3)
+ax_noise.text(
+    0.5, 0.5, "Run a sweep to see results",
+    transform=ax_noise.transAxes, ha="center", va="center",
+    color="gray", fontsize=10, style="italic",
+)
 
-# Filter selection radio buttons using available types (or sensible defaults)
+# Filter options
 if my_adc is not None:
     filter_tokens = str(my_adc.filter_type_available).split()
     filter_options = [f for f in filter_tokens if f != "none"] or [
@@ -457,17 +388,29 @@ default_idx = (
     filter_options.index(current_filter) if current_filter in filter_options else 0
 )
 
-# Stack everything centered horizontally
-ax_filter = fig_ctrl.add_axes([0.20, 0.60, 0.60, 0.18])
+fig_ctrl.text(0.53, 0.24, "Noise BW Sweep Setup", ha="center", fontsize=10)
+
+ax_fstart = fig_ctrl.add_axes([0.235, 0.17, 0.10, 0.05])
+tb_fstart = TextBox(ax_fstart, "Start (Hz)", initial="0")
+tb_fstart.label.set_x(-0.05)  # type: ignore
+
+ax_fstop = fig_ctrl.add_axes([0.40, 0.17, 0.10, 0.05])
+tb_fstop = TextBox(ax_fstop, "Stop (Hz)", initial="99000")
+tb_fstop.label.set_x(-0.05)  # type: ignore
+
+ax_fstep = fig_ctrl.add_axes([0.58, 0.17, 0.10, 0.05])
+tb_fstep = TextBox(ax_fstep, "Step (Hz)", initial="1000")
+tb_fstep.label.set_x(-0.05)  # type: ignore
+
+ax_osr = fig_ctrl.add_axes([0.72, 0.17, 0.06, 0.05])
+tb_osr = TextBox(ax_osr, "OSR", initial="1024")
+tb_osr.label.set_x(-0.07)  # type: ignore
+
+ax_filter = fig_ctrl.add_axes([0.20, 0.03, 0.30, 0.09])
 rb_filter = RadioButtons(ax_filter, filter_options, active=default_idx)  # type: ignore
 ax_filter.set_title("Filter")
 
-# OSR textbox in the middle
-ax_osr = fig_ctrl.add_axes([0.30, 0.35, 0.40, 0.12])
-tb_osr = TextBox(ax_osr, "OSR", initial="1024")
-
-# Start sweep button at the bottom of the stack
-ax_start = fig_ctrl.add_axes([0.30, 0.15, 0.40, 0.12])
+ax_start = fig_ctrl.add_axes([0.53, 0.03, 0.28, 0.09])
 btn_start = Button(ax_start, "Start sweep", color="lightgreen", hovercolor="green")
 
 
@@ -481,13 +424,23 @@ def _parse_int(label, text):
 
 def on_start(event):
     osr = _parse_int("OSR", tb_osr.text)
-    if osr is None:
+    fstart = _parse_int("Start freq", tb_fstart.text)
+    fstop = _parse_int("Stop freq", tb_fstop.text)
+    fstep = _parse_int("Step freq", tb_fstep.text)
+    if osr is None or fstart is None or fstop is None or fstep is None:
+        return
+    if fstep <= 0:
+        print("Step (Hz) must be > 0")
+        return
+    if fstart > fstop:
+        print("Start (Hz) must be <= Stop (Hz)")
         return
 
     filt = rb_filter.value_selected
-    print(f"Starting noise BW sweep with OSR={osr}, filter={filt}")
+    print(f"Starting noise BW sweep with OSR={osr}, filter={filt}, "
+          f"start={fstart} Hz, stop={fstop} Hz, step={fstep} Hz")
 
-    run_noise_sweep(osr, filt)
+    run_noise_sweep(osr, filt, freq_start=fstart, freq_stop=fstop, freq_step=fstep)
 
 
 btn_start.on_clicked(on_start)
