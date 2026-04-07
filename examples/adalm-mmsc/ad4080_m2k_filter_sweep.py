@@ -255,26 +255,27 @@ print("Readback filter type:", my_adc.filter_type)
 print("Readback OSR:", my_adc.oversampling_ratio)
 
 
-print("Collecting initial data sample")
-
-plt.figure(1)
-plt.clf()
-data = my_adc.rx()
-
-plt.plot(data, label="channel0")
-plt.xlabel("Data Point")
-plt.ylabel("ADC counts")
-plt.legend(
-    bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
-    loc="lower left",
-    ncol=4,
-    mode="expand",
-    borderaxespad=0.0,
-)
-
-print("\nFigure 1: Initial Data Sample")
-print(" > Close the figure window to proceed with frequency sweep\n")
-plt.show()
+# # Commented out: initial data sample graph ---
+# print("Collecting initial data sample")
+#
+# plt.figure(1)
+# plt.clf()
+# data = my_adc.rx()
+#
+# plt.plot(data, label="channel0")
+# plt.xlabel("Data Point")
+# plt.ylabel("ADC counts")
+# plt.legend(
+#     bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
+#     loc="lower left",
+#     ncol=4,
+#     mode="expand",
+#     borderaxespad=0.0,
+# )
+#
+# print("\nFigure 1: Initial Data Sample")
+# print(" > Close the figure window to proceed with frequency sweep\n")
+# plt.show()
 
 
 # Set up m2k
@@ -375,25 +376,31 @@ def run_sweep(
 
 
 # Set up interactive GUI for sweep and plots
-# Figure 2: time-domain and spectrum (with controls)
-fig, (ax_td, ax_spec) = plt.subplots(2, 1, figsize=(6, 6))
-# Leave space at the bottom for all controls and stretch plots horizontally
-fig.subplots_adjust(left=0.08, right=0.98, bottom=0.28, top=0.95, hspace=0.5)
+fig, ax_resp = plt.subplots(1, 1, figsize=(12, 6))
+fig.subplots_adjust(left=0.10, right=0.95, bottom=0.28, top=0.95)
 
-ax_td.set_title("AD4080 Time Domain Data (Last Acquisition)")
-ax_td.set_xlabel("Data Point")
-ax_td.set_ylabel("Voltage (V)")
-(td_line,) = ax_td.plot([], [], label="time domain")
-ax_td.legend(loc="upper right")
+ax_resp.set_title(
+    f"AD4080 Filter Frequency Response ({args['filter'].upper()}, OSR={args['osr']})"
+)
+ax_resp.set_xlabel("frequency [Hz]")
+ax_resp.set_ylabel("response (dB)")
+ax_resp.grid(True)
 
-ax_spec.set_title("AD4080 Spectrum (Volts absolute)")
-ax_spec.set_xlabel("frequency [Hz]")
-ax_spec.set_ylabel("Voltage (V)")
-(spec_line,) = ax_spec.semilogy([], [])
-ax_spec.set_ylim([1e-6, 4])
+# # Commented out: time-domain and spectrum plots ---
+# fig_td, (ax_td, ax_spec) = plt.subplots(2, 1, figsize=(6, 6))
+# fig_td.subplots_adjust(left=0.08, right=0.98, bottom=0.10, top=0.95, hspace=0.5)
+# ax_td.set_title("AD4080 Time Domain Data (Last Acquisition)")
+# ax_td.set_xlabel("Data Point")
+# ax_td.set_ylabel("Voltage (V)")
+# (td_line,) = ax_td.plot([], [], label="time domain")
+# ax_td.legend(loc="upper right")
+# ax_spec.set_title("AD4080 Spectrum (Volts absolute)")
+# ax_spec.set_xlabel("frequency [Hz]")
+# ax_spec.set_ylabel("Voltage (V)")
+# (spec_line,) = ax_spec.semilogy([], [])
+# ax_spec.set_ylim([1e-6, 4])
 
-# Widget axes (placed along the bottom of Figure 2)
-# Shift all controls to the right to better use horizontal space
+# Widget axes 
 ax_start = fig.add_axes([0.235, 0.17, 0.10, 0.05])
 ax_stop = fig.add_axes([0.40, 0.17, 0.10, 0.05])
 ax_step = fig.add_axes([0.58, 0.17, 0.10, 0.05])
@@ -440,15 +447,6 @@ except Exception:
 print("OSR valid values:", osr_valid_values)
 
 btn_run = Button(ax_run, "Run sweep", color="lightgreen", hovercolor="green",)
-
-# Figure 3: frequency-response plot in a separate window
-fig_resp, ax_resp = plt.subplots(1, 1, num=3, figsize=(8, 4))
-ax_resp.set_title(
-    f"AD4080 Filter Frequency Response ({args['filter'].upper()}, OSR={args['osr']})"
-)
-ax_resp.set_xlabel("frequency [Hz]")
-ax_resp.set_ylabel("response (dB)")
-ax_resp.grid(True)
 
 
 def _parse_int_sanitized(label, text):
@@ -551,17 +549,16 @@ def on_run(event):
             label=f"OSR={osr}",
         )
 
-    # Update time-domain and spectrum plots using the last sweep
-    if last_sample_indices is not None and last_time_domain_voltage is not None:
-        td_line.set_data(last_sample_indices, last_time_domain_voltage)
-        ax_td.relim()
-        ax_td.autoscale_view()
-
-    if last_frequency_axis is not None and last_spectrum_abs is not None:
-        spec_line.set_data(last_frequency_axis, last_spectrum_abs)
-        ax_spec.relim()
-        ax_spec.autoscale_view()
-        ax_spec.set_ylim([1e-6, 4])
+    # # Commented out: time-domain and spectrum updates ---
+    # if last_sample_indices is not None and last_time_domain_voltage is not None:
+    #     td_line.set_data(last_sample_indices, last_time_domain_voltage)
+    #     ax_td.relim()
+    #     ax_td.autoscale_view()
+    # if last_frequency_axis is not None and last_spectrum_abs is not None:
+    #     spec_line.set_data(last_frequency_axis, last_spectrum_abs)
+    #     ax_spec.relim()
+    #     ax_spec.autoscale_view()
+    #     ax_spec.set_ylim([1e-6, 4])
 
     ax_resp.set_xlabel("frequency [Hz]")
     ax_resp.set_ylabel("response (dB)")
@@ -573,9 +570,7 @@ def on_run(event):
         f"AD4080 Filter Frequency Response ({filt.upper()}, OSR={osr_label})"
     )
 
-    # Redraw both figures so all plots update together
     fig.canvas.draw_idle()
-    fig_resp.canvas.draw_idle()
 
 
 btn_run.on_clicked(on_run)
