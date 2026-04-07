@@ -140,6 +140,10 @@ print(f"Buffer size: {buffer_size} samples (maximum)")
 print(f"Frequency resolution: {my_adc.sampling_frequency / buffer_size:.2f} Hz/bin\n")
 
 my_adc.rx_buffer_size = buffer_size
+
+# Increase IIO context timeout for serial link (default can be too short)
+my_adc._ctx.set_timeout(10000)  # 10 seconds
+
 data = my_adc.rx()
 
 # Create figure with more vertical spacing
@@ -152,7 +156,7 @@ ax2 = fig.add_subplot(gs[1, :])
 # Set-up time domain plot
 ax1.set_title("Time Domain")
 # Add margin around min/max for better visibility
-margin = (max(data) - min(data)) * 0.2
+margin = (max(data) - min(data)) * 0.2 # type: ignore
 ax1.set_ylim([min(data) - margin, max(data) + margin])  # type: ignore
 (line1,) = ax1.plot(data, label="time domain")
 ax1.set_xlabel("Sample")
@@ -283,10 +287,11 @@ while True:
             # Collect data
             data = my_adc.rx()
 
-            # Update Y-axis limits with margin
+            # Update time-domain plot (x and y together to avoid shape mismatch)
             margin = (max(data) - min(data)) * 0.2
+            ax1.set_xlim([0, len(data) - 1])
             ax1.set_ylim([min(data) - margin, max(data) + margin])  # type: ignore
-            line1.set_ydata(data)
+            line1.set_data(range(len(data)), data)
 
             windowed_data = (data - np.average(data)) * np.blackman(len(data))
             magnitude_spectrum = (
@@ -312,8 +317,9 @@ while True:
             print(f"Expected sample rate:   {my_adc.sampling_frequency} Hz")
             print(f"Error: {error_percent:+.2f}%\n")
 
+            ax2.set_xlim([0, len(magnitude_spectrum) - 1])
             ax2.set_ylim([min(magnitude_spectrum) * 1.1, max(magnitude_spectrum) * 1.1])  # type: ignore
-            line2.set_ydata(magnitude_spectrum)
+            line2.set_data(range(len(magnitude_spectrum)), magnitude_spectrum)
             ax2.set_title("FFT, calculated Fs = %i" % calculated_fs)
 
             # Reset single shot flag
