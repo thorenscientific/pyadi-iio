@@ -8,7 +8,7 @@
 
     <title>ad4630 &#8212; Analog Devices Hardware Python Interfaces 0.0.21 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8e8a900e" />
-    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=5c8d5ce8" />
+    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=833c9372" />
     <link rel="stylesheet" type="text/css" href="../_static/css/style.css?v=632a43e7" />
     <script async="async" src="../_static/app.umd.js?v=f78f54ff"></script>
     <link rel="icon" href="../_static/favicon.png"/>
@@ -97,7 +97,7 @@
           <ul>
 <li><a class="reference internal" href="#">ad4630</a><ul>
 <li><a class="reference internal" href="#adi.ad4630.ad4630"><code class="docutils literal notranslate"><span class="pre">ad4630</span></code></a><ul>
-<li><a class="reference internal" href="#adi.ad4630.ad4630.output_data_mode"><code class="docutils literal notranslate"><span class="pre">ad4630.output_data_mode()</span></code></a></li>
+<li><a class="reference internal" href="#adi.ad4630.ad4630.output_data_mode"><code class="docutils literal notranslate"><span class="pre">ad4630.output_data_mode</span></code></a></li>
 <li><a class="reference internal" href="#adi.ad4630.ad4630.rx"><code class="docutils literal notranslate"><span class="pre">ad4630.rx()</span></code></a></li>
 <li><a class="reference internal" href="#adi.ad4630.ad4630.sample_averaging"><code class="docutils literal notranslate"><span class="pre">ad4630.sample_averaging</span></code></a></li>
 <li><a class="reference internal" href="#adi.ad4630.ad4630.sample_averaging_avail"><code class="docutils literal notranslate"><span class="pre">ad4630.sample_averaging_avail</span></code></a></li>
@@ -140,6 +140,7 @@ Content on this topic
 <li class="toctree-l1"><a class="reference internal" href="../guides/connectivity.html">Connectivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../buffers/index.html">Buffers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../fpga/index.html">FPGA Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mcp/index.html">MCP Server</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../libiio.html">libiio Direct Access</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../support.html">Support</a></li>
 <li class="toctree-l1"><input class="toctree-collapse" type="checkbox" name="toctree-collapse-1" id="toctree-collapse-1"/><div class="collapse"><a class="reference internal" href="../dev/index.html">Developers</a><label for="toctree-collapse-1"><div class="icon"></div></label></div><ul>
@@ -240,6 +241,7 @@ Content on this topic
 <li class="toctree-l2"><a class="reference internal" href="adi.adis16550.html">adis16550</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.adl5240.html">adi.adl5240 module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.adl5960.html">adl5960</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adi.adl8113.html">adl8113</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.admv8818.html">admv8818</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.adpd1080.html">adpd1080</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.adpd188.html">adpd188</a></li>
@@ -317,10 +319,10 @@ Content on this topic
 <dt class="sig sig-object py" id="adi.ad4630.ad4630">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adi.ad4630.</span></span><span class="sig-name descname"><span class="pre">ad4630</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ad4630-24'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.ad4630.ad4630" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="../buffers/index.html#adi.rx_tx.rx" title="adi.rx_tx.rx"><code class="xref py py-class docutils literal notranslate"><span class="pre">rx</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">context_manager</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">attribute</span></code></p>
-<p>AD4630 is low power 24-bit precision SAR ADC</p>
-<dl class="py method">
+<p>AD4630 is low power precision SAR ADC family supporting 16-bit, 20-bit, and 24-bit variants</p>
+<dl class="py property">
 <dt class="sig sig-object py" id="adi.ad4630.ad4630.output_data_mode">
-<span class="sig-name descname"><span class="pre">output_data_mode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#adi.ad4630.ad4630.output_data_mode" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">output_data_mode</span></span><a class="headerlink" href="#adi.ad4630.ad4630.output_data_mode" title="Link to this definition"></a></dt>
 <dd><p>Determine the output data mode in which device is configured.</p>
 </dd></dl>
 

@@ -8,7 +8,7 @@
 
     <title>Buffers &#8212; Analog Devices Hardware Python Interfaces 0.0.21 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8e8a900e" />
-    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=5c8d5ce8" />
+    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=833c9372" />
     <link rel="stylesheet" type="text/css" href="../_static/css/style.css?v=632a43e7" />
     <script async="async" src="../_static/app.umd.js?v=f78f54ff"></script>
     <link rel="icon" href="../_static/favicon.png"/>
@@ -113,6 +113,7 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#adi.rx_tx.rx_def"><code class="docutils literal notranslate"><span class="pre">rx_def</span></code></a></li>
+<li><a class="reference internal" href="#adi.rx_tx.rx_def_no_buff"><code class="docutils literal notranslate"><span class="pre">rx_def_no_buff</span></code></a></li>
 <li><a class="reference internal" href="#adi.rx_tx.rx_tx"><code class="docutils literal notranslate"><span class="pre">rx_tx</span></code></a></li>
 <li><a class="reference internal" href="#adi.rx_tx.rx_tx_common"><code class="docutils literal notranslate"><span class="pre">rx_tx_common</span></code></a></li>
 <li><a class="reference internal" href="#adi.rx_tx.rx_tx_def"><code class="docutils literal notranslate"><span class="pre">rx_tx_def</span></code></a></li>
@@ -127,6 +128,7 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#adi.rx_tx.tx_def"><code class="docutils literal notranslate"><span class="pre">tx_def</span></code></a></li>
+<li><a class="reference internal" href="#adi.rx_tx.tx_def_no_buff"><code class="docutils literal notranslate"><span class="pre">tx_def_no_buff</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#buffer-examples">Buffer Examples</a></li>
@@ -165,6 +167,7 @@ Content on this topic
 <li class="toctree-l1"><a class="reference internal" href="../guides/connectivity.html">Connectivity</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Buffers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../fpga/index.html">FPGA Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mcp/index.html">MCP Server</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../libiio.html">libiio Direct Access</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../support.html">Support</a></li>
 <li class="toctree-l1"><input class="toctree-collapse" type="checkbox" name="toctree-collapse-1" id="toctree-collapse-1"/><div class="collapse"><a class="reference internal" href="../dev/index.html">Developers</a><label for="toctree-collapse-1"><div class="icon"></div></label></div><ul>
@@ -265,6 +268,7 @@ Content on this topic
 <li class="toctree-l2"><a class="reference internal" href="../devices/adi.adis16550.html">adis16550</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../devices/adi.adl5240.html">adi.adl5240 module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../devices/adi.adl5960.html">adl5960</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../devices/adi.adl8113.html">adl8113</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../devices/adi.admv8818.html">admv8818</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../devices/adi.adpd1080.html">adpd1080</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../devices/adi.adpd188.html">adpd188</a></li>
@@ -508,6 +512,11 @@ translated to channel numbers.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="adi.rx_tx.rx_def_no_buff">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adi.rx_tx.</span></span><span class="sig-name descname"><span class="pre">rx_def_no_buff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Context</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Context</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.rx_tx.rx_def_no_buff" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="adi.rx_tx.rx_tx">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adi.rx_tx.</span></span><span class="sig-name descname"><span class="pre">rx_tx</span></span><a class="headerlink" href="#adi.rx_tx.rx_tx" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -584,8 +593,13 @@ translated to channel numbers.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="adi.rx_tx.tx_def">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adi.rx_tx.</span></span><span class="sig-name descname"><span class="pre">tx_def</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Context</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Context</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.rx_tx.tx_def" title="Link to this definition"></a></dt>
-<dd><p>Template metaclass for rx only device specific interfaces.</p>
+<dd><p>Template metaclass for tx only device specific interfaces.</p>
 </dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="adi.rx_tx.tx_def_no_buff">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adi.rx_tx.</span></span><span class="sig-name descname"><span class="pre">tx_def_no_buff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Context</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Context</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.rx_tx.tx_def_no_buff" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="buffer-examples">
