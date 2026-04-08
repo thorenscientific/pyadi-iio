@@ -295,7 +295,8 @@ vref = 5.0
 
 
 def run_sweep(
-    start_hz, stop_hz, step_hz, osr, filt, amplitude, offset, phase, settle_time
+    start_hz, stop_hz, step_hz, osr, filt, amplitude, offset, phase, settle_time,
+    my_adc, siggen, sampling_frequency, vref
 ):
     """Run a frequency sweep and return processed results for plotting."""
 
@@ -538,6 +539,10 @@ def on_run(event):
             args["offset"],
             args["phase"],
             args["settle_time"],
+            my_adc,
+            siggen,
+            sampling_frequency,
+            vref,
         )
 
         ax_resp.semilogx(
