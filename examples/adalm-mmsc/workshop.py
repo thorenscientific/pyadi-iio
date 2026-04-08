@@ -1,3 +1,7 @@
+# Copyright (C) 2023-2026 Analog Devices, Inc.
+#
+# SPDX short identifier: ADIBSD
+
 """
 Utility functions for the FTC 2024 workshop on converter infrastructure.
 While an interesting read, these are mostly the things we deemed out-of-scope
@@ -187,11 +191,7 @@ def generate_noise_band(center, width, fs, amplitude=1.0, duration_s=0.25):
         lo_bin = max(1, hi_bin - 1)
 
     spectrum = np.concatenate(
-        (
-            np.zeros(lo_bin),
-            np.ones(hi_bin - lo_bin),
-            np.zeros(nyq - hi_bin),
-        )
+        (np.zeros(lo_bin), np.ones(hi_bin - lo_bin), np.zeros(nyq - hi_bin),)
     )
     spectrum /= np.sqrt(max(1, hi_bin - lo_bin))
     spectrum *= amplitude
