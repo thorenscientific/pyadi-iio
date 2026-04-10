@@ -41,10 +41,8 @@ import libm2k  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 import serial.tools.list_ports  # type: ignore
-import workshop  # type: ignore
-
+import workshop # type: ignore
 import adi  # type: ignore
-
 
 def scan_com_ports():
     """Scan for available COM ports without opening them"""

@@ -8,8 +8,8 @@ from time import sleep
 
 import libm2k
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.widgets import Button, RadioButtons
+import numpy as np
 from scipy import signal
 from sine_gen import *
 
@@ -21,7 +21,10 @@ parser = argparse.ArgumentParser(
     description="Generate a noisy signal on the M2K, record it using the AD4080ARDZ, and do a Fourier analysis."
 )
 parser.add_argument(
-    "-m", "--m2k_uri", default="usb:1.38.5", help="LibIIO context URI of the ADALM2000",
+    "-m",
+    "--m2k_uri",
+    default="usb:1.38.5",
+    help="LibIIO context URI of the ADALM2000",
 )
 # parser.add_argument('-a', '--ad4080_uri', default='serial:/dev/ttyACM0,230400,8n1',
 parser.add_argument(
@@ -92,7 +95,12 @@ ax_filter.set_title("Filter")
 
 # Start sweep button
 ax_start_btn = fig1.add_axes([0.55, 0.08, 0.30, 0.10])
-btn_start = Button(ax_start_btn, "Start sweep", color="lightgreen", hovercolor="green",)
+btn_start = Button(
+    ax_start_btn,
+    "Start sweep",
+    color="lightgreen",
+    hovercolor="green",
+)
 
 
 vref = 5.0
@@ -176,14 +184,7 @@ def start_sweep(event):
         amps_db = 20 * np.log10(amps / np.sqrt(4.0))  # 4V is p-p amplitude
 
         # Update combined figure: response vs frequency for this OSR
-        ax_all.semilogx(
-            fs,
-            amps_db,
-            linestyle="dashed",
-            marker="o",
-            ms=2,
-            label=f"OSR={oversample_ratio}",
-        )
+        ax_all.semilogx(fs, amps_db, linestyle="dashed", marker="o", ms=2, label=f"OSR={oversample_ratio}")
 
         f_axis, Pxx_spec = signal.periodogram(
             ac, 40000000.0, window="flattop", scaling="spectrum"

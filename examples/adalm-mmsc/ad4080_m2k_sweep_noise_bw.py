@@ -1,31 +1,161 @@
-# Copyright (C) 2026 Analog Devices, Inc.
+# Copyright (C) 2022 Analog Devices, Inc.
 #
-# SPDX short identifier: ADIBSD
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#     - Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     - Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in
+#       the documentation and/or other materials provided with the
+#       distribution.
+#     - Neither the name of Analog Devices, Inc. nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#     - The use of this software may or may not infringe the patent rights
+#       of one or more patent holders.  This license does not release you
+#       from the requirement that you obtain separate licenses from these
+#       patent holders to use this software.
+#     - Use of the software either in source or binary form, must be run
+#       on or directly connected to an Analog Devices Inc. component.
+#
+# THIS SOFTWARE IS PROVIDED BY ANALOG DEVICES "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED.
+#
+# IN NO EVENT SHALL ANALOG DEVICES BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, INTELLECTUAL PROPERTY
+# RIGHTS, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+# THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import re
 import sys
+import tkinter as tk
 from time import sleep
+from tkinter import ttk
 
 import libm2k  # type: ignore
+import serial.tools.list_ports  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 from matplotlib.widgets import Button, RadioButtons, TextBox  # type: ignore
-from mmsc_utils import DeviceSelectionDialog, build_ad4080_uri
 from scipy import signal  # type: ignore
-from workshop import time_points_from_freq  # type: ignore
+from workshop import time_points_from_freq # type: ignore
 
 from adi import ad4080  # type: ignore
 
-# Show device selection dialog before anything else
-selected_devices = DeviceSelectionDialog(include_m2k=True).show()
+def scan_com_ports():
+    """Scan for available COM ports without opening them."""
+    ports = serial.tools.list_ports.comports()
+    return [port.device for port in sorted(ports)]
 
-if selected_devices is None:
+
+def scan_m2k_devices():
+    """Scan for available M2K devices via libm2k."""
+    try:
+        contexts = libm2k.getAllContexts()
+        return contexts if contexts else []
+    except Exception:
+        return []
+
+
+class DeviceSelectionDialog:
+    def __init__(self):
+        self.result = None
+        self.root = tk.Tk()
+        self.root.title("Select Devices")
+        self.root.geometry("400x200")
+
+        main_frame = ttk.Frame(self.root, padding="20")
+        main_frame.pack(fill="both", expand=True)
+
+        row = 0
+
+        # AD4080 COM Port selection
+        ttk.Label(main_frame, text="AD4080 COM Port:", font=("", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=10
+        )
+        available_ports = scan_com_ports()
+        if available_ports:
+            self.com_port = tk.StringVar(
+                value="COM13" if "COM13" in available_ports else available_ports[0]
+            )
+            ttk.Combobox(
+                main_frame,
+                textvariable=self.com_port,
+                values=available_ports,
+                width=25,
+                state="readonly",
+            ).grid(row=row, column=1, sticky="w", padx=5)
+        else:
+            self.com_port = tk.StringVar(value="COM13")
+            ttk.Entry(main_frame, textvariable=self.com_port, width=27).grid(
+                row=row, column=1, sticky="w", padx=5
+            )
+        row += 1
+
+        # M2K URI selection
+        ttk.Label(main_frame, text="M2K URI:", font=("", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=10
+        )
+        available_m2k = scan_m2k_devices()
+        if available_m2k:
+            self.m2k_uri = tk.StringVar(value=available_m2k[0])
+            ttk.Combobox(
+                main_frame,
+                textvariable=self.m2k_uri,
+                values=available_m2k,
+                width=25,
+                state="readonly",
+            ).grid(row=row, column=1, sticky="w", padx=5)
+        else:
+            self.m2k_uri = tk.StringVar(value="ip:192.168.2.1")
+            ttk.Entry(main_frame, textvariable=self.m2k_uri, width=27).grid(
+                row=row, column=1, sticky="w", padx=5
+            )
+        row += 1
+
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=row, column=0, columnspan=2, pady=20)
+        ttk.Button(button_frame, text="Connect", command=self.on_ok, width=12).pack(
+            side="left", padx=5
+        )
+        ttk.Button(button_frame, text="Cancel", command=self.on_cancel, width=12).pack(
+            side="left", padx=5
+        )
+
+    def on_ok(self):
+        self.result = {
+            "com_port": self.com_port.get(),
+            "m2k_uri": self.m2k_uri.get(),
+        }
+        self.root.quit()
+        self.root.destroy()
+
+    def on_cancel(self):
+        self.root.quit()
+        self.root.destroy()
+
+    def show(self):
+        self.root.mainloop()
+        return self.result
+
+
+# Show device selection dialog before anything else
+_device_dialog = DeviceSelectionDialog()
+_selected_devices = _device_dialog.show()
+
+if _selected_devices is None:
     print("Connection cancelled by user")
     sys.exit(0)
 
 
-my_uri = build_ad4080_uri(selected_devices["com_port"])
-m2k_uri = selected_devices["m2k_uri"]
+my_uri = f"serial:{_selected_devices['com_port']},230400"
+m2k_uri = _selected_devices["m2k_uri"]
 print(f"AD4080: {my_uri}  M2K: {m2k_uri}")
 
 
@@ -48,9 +178,7 @@ except Exception as e:
     sampling_frequency = 40000000.0
 
 
-def run_noise_sweep(
-    oversample_ratio, filter_type, freq_start=0, freq_stop=99000, freq_step=1000
-):
+def run_noise_sweep(oversample_ratio, filter_type, freq_start=0, freq_stop=99000, freq_step=1000):
     """Configure ADC and run the noise bandwidth sweep, then plot results."""
     global my_adc, ax_noise
     assert ax_noise is not None, "ax_noise not yet initialised"
@@ -150,8 +278,8 @@ def run_noise_sweep(
         np.cumsum(np.sinc(f_pos / fnotch) ** (2 * sinc_order)) * df
     )  # output: flat PSD × |H(f)|² with H(f)=sinc^N
     # Raw (non-integrated) filter magnitude responses
-    sinc1_response = np.abs(np.sinc(f_pos / fnotch))  # |sinc(f/fnotch)|
-    sinc2_response = np.abs(np.sinc(f_pos / fnotch)) ** 2  # |sinc(f/fnotch)|²
+    sinc1_response = np.abs(np.sinc(f_pos / fnotch))        # |sinc(f/fnotch)|
+    sinc2_response = np.abs(np.sinc(f_pos / fnotch)) ** 2    # |sinc(f/fnotch)|²
 
     a_pos = amps_arr[1:]
     mid_idx = len(f_pos) // 2
@@ -208,7 +336,7 @@ def run_noise_sweep(
         label="Sinc² filter response",
     )
     ax_filt.set_ylabel("Filter magnitude", fontsize=7)
-    ax_filt.set_ylim([-0.05, 1.05])  # type: ignore
+    ax_filt.set_ylim([-0.05, 1.05]) # type: ignore
 
     ax_noise.axvline(
         x=fnotch,
@@ -238,15 +366,9 @@ fig_ctrl.subplots_adjust(left=0.10, right=0.95, bottom=0.28, top=0.95)
 ax_noise.set_ylabel("Integrated noise (V rms)")
 ax_noise.grid(True, which="both", alpha=0.3)
 ax_noise.text(
-    0.5,
-    0.5,
-    "Run a sweep to see results",
-    transform=ax_noise.transAxes,
-    ha="center",
-    va="center",
-    color="gray",
-    fontsize=10,
-    style="italic",
+    0.5, 0.5, "Run a sweep to see results",
+    transform=ax_noise.transAxes, ha="center", va="center",
+    color="gray", fontsize=10, style="italic",
 )
 
 # Filter options
@@ -315,10 +437,8 @@ def on_start(event):
         return
 
     filt = rb_filter.value_selected
-    print(
-        f"Starting noise BW sweep with OSR={osr}, filter={filt}, "
-        f"start={fstart} Hz, stop={fstop} Hz, step={fstep} Hz"
-    )
+    print(f"Starting noise BW sweep with OSR={osr}, filter={filt}, "
+          f"start={fstart} Hz, stop={fstop} Hz, step={fstep} Hz")
 
     run_noise_sweep(osr, filt, freq_start=fstart, freq_stop=fstop, freq_step=fstep)
 

@@ -1,23 +1,157 @@
-# Copyright (C) 2026 Analog Devices, Inc.
+# Copyright (C) 2022 Analog Devices, Inc.
 #
-# SPDX short identifier: ADIBSD
-
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#     - Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     - Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in
+#       the documentation and/or other materials provided with the
+#       distribution.
+#     - Neither the name of Analog Devices, Inc. nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#     - The use of this software may or may not infringe the patent rights
+#       of one or more patent holders.  This license does not release you
+#       from the requirement that you obtain separate licenses from these
+#       patent holders to use this software.
+#     - Use of the software either in source or binary form, must be run
+#       on or directly connected to an Analog Devices Inc. component.
+#
+# THIS SOFTWARE IS PROVIDED BY ANALOG DEVICES "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED.
+#
+# IN NO EVENT SHALL ANALOG DEVICES BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, INTELLECTUAL PROPERTY
+# RIGHTS, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+# THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import argparse
 import sys
+import tkinter as tk
+from time import sleep
+from tkinter import ttk
 
 import libm2k  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
+import serial.tools.list_ports  # type: ignore
 from matplotlib.widgets import Button, RadioButtons, TextBox  # type: ignore
-from mmsc_utils import DeviceSelectionDialog, build_ad4080_uri
 from scipy import signal  # type: ignore
 from sine_gen import sine_buffer_generator
 
 from adi import ad4080  # type: ignore
 
+
+def scan_com_ports():
+    """Scan for available COM ports without opening them"""
+    ports = serial.tools.list_ports.comports()
+    return [port.device for port in sorted(ports)]
+
+
+def scan_m2k_devices():
+    """Scan for available M2K devices"""
+    try:
+        contexts = libm2k.getAllContexts()
+        return contexts if contexts else []
+    except Exception:
+        return []
+
+
+class DeviceSelectionDialog:
+    def __init__(self):
+        self.result = None
+        self.root = tk.Tk()
+        self.root.title("Select Devices")
+        self.root.geometry("400x200")
+
+        main_frame = ttk.Frame(self.root, padding="20")
+        main_frame.pack(fill="both", expand=True)
+
+        row = 0
+
+        # AD4080 COM Port selection
+        ttk.Label(main_frame, text="AD4080 COM Port:", font=("", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=10
+        )
+
+        available_ports = scan_com_ports()
+        if available_ports:
+            self.com_port = tk.StringVar(
+                value="COM12" if "COM12" in available_ports else available_ports[0]
+            )
+            ttk.Combobox(
+                main_frame,
+                textvariable=self.com_port,
+                values=available_ports,
+                width=25,
+                state="readonly",
+            ).grid(row=row, column=1, sticky="w", padx=5)
+        else:
+            self.com_port = tk.StringVar(value="COM12")
+            ttk.Entry(main_frame, textvariable=self.com_port, width=27).grid(
+                row=row, column=1, sticky="w", padx=5
+            )
+        row += 1
+
+        # M2K URI selection
+        ttk.Label(main_frame, text="M2K URI:", font=("", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=10
+        )
+
+        available_m2k = scan_m2k_devices()
+        if available_m2k:
+            self.m2k_uri = tk.StringVar(value=available_m2k[0])
+            ttk.Combobox(
+                main_frame,
+                textvariable=self.m2k_uri,
+                values=available_m2k,
+                width=25,
+                state="readonly",
+            ).grid(row=row, column=1, sticky="w", padx=5)
+        else:
+            self.m2k_uri = tk.StringVar(value="ip:192.168.2.1")
+            ttk.Entry(main_frame, textvariable=self.m2k_uri, width=27).grid(
+                row=row, column=1, sticky="w", padx=5
+            )
+        row += 1
+
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=row, column=0, columnspan=2, pady=20)
+
+        ttk.Button(button_frame, text="Connect", command=self.on_ok, width=12).pack(
+            side="left", padx=5
+        )
+        ttk.Button(button_frame, text="Cancel", command=self.on_cancel, width=12).pack(
+            side="left", padx=5
+        )
+
+    def on_ok(self):
+        self.result = {
+            "com_port": self.com_port.get(),
+            "m2k_uri": self.m2k_uri.get(),
+        }
+        self.root.quit()
+        self.root.destroy()
+
+    def on_cancel(self):
+        self.root.quit()
+        self.root.destroy()
+
+    def show(self):
+        self.root.mainloop()
+        return self.result
+
+
 # Show device selection dialog
-selected_devices = DeviceSelectionDialog(include_m2k=True).show()
+device_dialog = DeviceSelectionDialog()
+selected_devices = device_dialog.show()
 
 if selected_devices is None:
     print("Connection cancelled by user")
@@ -101,7 +235,7 @@ parser.add_argument(
 
 args = vars(parser.parse_args())
 
-my_uri = build_ad4080_uri(selected_devices["com_port"])
+my_uri = f"serial:{selected_devices['com_port']},230400"
 m2k_uri = selected_devices["m2k_uri"]
 
 print(f"AD4080 uri: {my_uri}")
@@ -161,24 +295,10 @@ vref = 5.0
 
 
 def run_sweep(
-    start_hz,
-    stop_hz,
-    step_hz,
-    osr,
-    filt,
-    amplitude,
-    offset,
-    phase,
-    settle_time,
-    my_adc,
-    siggen,
-    sampling_frequency,
-    vref,
-    ax,
-    fig,
-    label=None,
+    start_hz, stop_hz, step_hz, osr, filt, amplitude, offset, phase, settle_time,
+    my_adc, siggen, sampling_frequency, vref
 ):
-    """Run a frequency sweep, plotting results incrementally as data is acquired."""
+    """Run a frequency sweep and return processed results for plotting."""
 
     my_adc.oversampling_ratio = osr
     my_adc.filter_type = filt
@@ -193,10 +313,6 @@ def run_sweep(
     )
     print(f"Step size: {step_hz/1000:.1f} kHz\n")
     print("=" * 60)
-
-    # Create an empty line to update incrementally
-    (line,) = ax.semilogx([], [], linestyle="dashed", marker="o", ms=2, label=label,)
-    ax.legend(title="OSR")
 
     last_sample_indices = None
     last_time_domain_voltage = None
@@ -220,8 +336,7 @@ def run_sweep(
 
         siggen.push([buffer0, buffer1])
 
-        # Use plt.pause instead of sleep to allow the GUI to update
-        plt.pause(settle_time)
+        sleep(settle_time)
 
         print(
             f"[{i}/{total_sweep_points}] Measuring at {input_frequency_hz/1000:.1f} kHz..."
@@ -239,13 +354,6 @@ def run_sweep(
         sweep_frequencies_hz.append(input_frequency_hz)
         sweep_rms_values.append(rms_value)
 
-        # Update plot incrementally
-        sweep_response_db = 20 * np.log10(np.array(sweep_rms_values) / amplitude)
-        line.set_data(sweep_frequencies_hz, sweep_response_db)
-        ax.relim()
-        ax.autoscale_view()
-        fig.canvas.draw_idle()
-
         # Save last acquisition for time-domain and spectrum plots
         last_sample_indices = sample_indices
         last_time_domain_voltage = voltage
@@ -257,7 +365,10 @@ def run_sweep(
         last_frequency_axis = frequency_axis
         last_spectrum_abs = np.sqrt(power_spectrum)
 
+    sweep_response_db = 20 * np.log10(np.array(sweep_rms_values) / amplitude)
     return (
+        sweep_frequencies_hz,
+        sweep_response_db,
         last_sample_indices,
         last_time_domain_voltage,
         last_frequency_axis,
@@ -290,7 +401,7 @@ ax_resp.grid(True)
 # (spec_line,) = ax_spec.semilogy([], [])
 # ax_spec.set_ylim([1e-6, 4])
 
-# Widget axes
+# Widget axes 
 ax_start = fig.add_axes([0.235, 0.17, 0.10, 0.05])
 ax_stop = fig.add_axes([0.40, 0.17, 0.10, 0.05])
 ax_step = fig.add_axes([0.58, 0.17, 0.10, 0.05])
@@ -401,20 +512,24 @@ def on_run(event):
 
     filt = rb_filt.value_selected
 
-    # Clear previous response curves and set up axes
+    # Clear previous response curves
     ax_resp.cla()
-    ax_resp.set_xlabel("frequency [Hz]")
-    ax_resp.set_ylabel("response (dB)")
-    ax_resp.grid(True)
 
-    osr_label = ",".join(str(o) for o in osr_values)
-    ax_resp.set_title(
-        f"AD4080 Filter Frequency Response ({filt.upper()}, OSR={osr_label})"
-    )
+    last_sample_indices = None
+    last_time_domain_voltage = None
+    last_frequency_axis = None
+    last_spectrum_abs = None
 
     # Run a sweep and plot a curve for each OSR
     for osr in osr_values:
-        run_sweep(
+        (
+            sweep_frequencies_hz,
+            sweep_response_db,
+            last_sample_indices,
+            last_time_domain_voltage,
+            last_frequency_axis,
+            last_spectrum_abs,
+        ) = run_sweep(
             start_hz,
             stop_hz,
             step_hz,
@@ -428,25 +543,51 @@ def on_run(event):
             siggen,
             sampling_frequency,
             vref,
-            ax_resp,
-            fig,
+        )
+
+        ax_resp.semilogx(
+            sweep_frequencies_hz,
+            sweep_response_db,
+            linestyle="dashed",
+            marker="o",
+            ms=2,
             label=f"OSR={osr}",
         )
+
+    # # Commented out: time-domain and spectrum updates ---
+    # if last_sample_indices is not None and last_time_domain_voltage is not None:
+    #     td_line.set_data(last_sample_indices, last_time_domain_voltage)
+    #     ax_td.relim()
+    #     ax_td.autoscale_view()
+    # if last_frequency_axis is not None and last_spectrum_abs is not None:
+    #     spec_line.set_data(last_frequency_axis, last_spectrum_abs)
+    #     ax_spec.relim()
+    #     ax_spec.autoscale_view()
+    #     ax_spec.set_ylim([1e-6, 4])
+
+    ax_resp.set_xlabel("frequency [Hz]")
+    ax_resp.set_ylabel("response (dB)")
+    ax_resp.grid(True)
+    ax_resp.legend(title="OSR")
+
+    osr_label = ",".join(str(o) for o in osr_values)
+    ax_resp.set_title(
+        f"AD4080 Filter Frequency Response ({filt.upper()}, OSR={osr_label})"
+    )
 
     fig.canvas.draw_idle()
 
 
 btn_run.on_clicked(on_run)
 
-
-def on_close(event):
-    print("All measurements complete. Cleaning up.")
-    siggen.stop()
-    libm2k.contextClose(ctx)
-
-
-fig.canvas.mpl_connect("close_event", on_close)
-
 print("Close the window to exit and clean up.\n")
 
 plt.show()
+
+
+print("All measurements complete. Cleaning up.")
+
+
+siggen.stop()
+libm2k.contextClose(ctx)
+del my_adc
