@@ -3,9 +3,9 @@
 # SPDX short identifier: ADIBSD
 
 import argparse
+from time import sleep
 
 import adi
-from time import sleep
 
 # Set up AD7124
 # Optionally pass URI as command line argument with -u option,
@@ -37,18 +37,27 @@ input("Set input voltage close to zero, then press enter...")
 
 print("Initial voltage on channel voltage0_voltage1: ", my_ad7124.voltage0_voltage1())
 
-my_ad7124.voltage0_voltage1.sys_calibration_mode = 'zero_scale'
+my_ad7124.voltage0_voltage1.sys_calibration_mode = "zero_scale"
 my_ad7124.voltage0_voltage1.sys_calibration = 1
 sleep(0.5)
-print("Calibrated zero-scale voltage on channel voltage0_voltage1: ", my_ad7124.voltage0_voltage1())
+print(
+    "Calibrated zero-scale voltage on channel voltage0_voltage1: ",
+    my_ad7124.voltage0_voltage1(),
+)
 print("Now set input voltage close to (but less than) 2.5 V")
 input("Then press enter")
 
-print("Initial full-scale voltage on channel voltage0_voltage1: ", my_ad7124.voltage0_voltage1())
-my_ad7124.voltage0_voltage1.sys_calibration_mode = 'full_scale'
+print(
+    "Initial full-scale voltage on channel voltage0_voltage1: ",
+    my_ad7124.voltage0_voltage1(),
+)
+my_ad7124.voltage0_voltage1.sys_calibration_mode = "full_scale"
 my_ad7124.voltage0_voltage1.sys_calibration = 1
 sleep(0.5)
-print("Calibrated full-scale voltage on channel voltage0_voltage1: ", my_ad7124.voltage0_voltage1())
+print(
+    "Calibrated full-scale voltage on channel voltage0_voltage1: ",
+    my_ad7124.voltage0_voltage1(),
+)
 
 
 # del my_ad7124

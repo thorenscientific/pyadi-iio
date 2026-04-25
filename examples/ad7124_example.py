@@ -3,7 +3,6 @@
 # SPDX short identifier: ADIBSD
 
 import argparse
-
 from time import sleep
 
 import adi
@@ -22,11 +21,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "-v",
-    "--verbose",
-    default=False,
-    help="Enable verbose output",
-    action="store_true",
+    "-v", "--verbose", default=False, help="Enable verbose output", action="store_true",
 )
 
 args = parser.parse_args()
@@ -36,10 +31,13 @@ verbose = args.verbose
 print("uri: " + str(my_uri))
 
 my_ad7124 = adi.ad7124(uri=my_uri)
-
 my_ad7124.rx_destroy_buffer()
 
-for i in range(0,len(my_ad7124.channel)):
+
+sampling_frequency = 19200
+filter_type = "sinc3"
+
+for i in range(0, len(my_ad7124.channel)):
     my_ad7124.channel[i].sampling_frequency = 4800
 
 print(
@@ -48,9 +46,21 @@ print(
     " degrees C.",
 )
 
+
+print("setting sample rate of all channels to ", sampling_frequency)
+print("setting filter type of all channels to ", filter_type)
+print("AD7124 channels:")
+
+
+for i in range(0, len(my_ad7124.channel)):
+    my_ad7124.channel[i].sampling_frequency = sampling_frequency
+    my_ad7124.channel[i].filter_type = filter_type
+    print("channel ", i, " name: ", my_ad7124.channel[i].name)
+
+
 print("Now reading out all raw channels...")
 
-for i in range(0,len(my_ad7124.channel)):
+for i in range(0, len(my_ad7124.channel)):
     print("Channel ", i, ":  ", my_ad7124.channel[i].raw)
     sleep(0.1)
 
@@ -96,7 +106,9 @@ if verbose is True:
     plt.plot(
         data[0], label=my_ad7124.channel[ad_channel0].name, color="orange", linewidth=2
     )
-    plt.plot(data[1], label=my_ad7124.channel[ad_channel1].name, color="blue", linewidth=2)
+    plt.plot(
+        data[1], label=my_ad7124.channel[ad_channel1].name, color="blue", linewidth=2
+    )
     plt.show()
 
-# del my_ad7124
+del my_ad7124

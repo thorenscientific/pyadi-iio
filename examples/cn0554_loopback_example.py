@@ -3,9 +3,12 @@
 # SPDX short identifier: ADIBSD
 
 import sys
-import time
+from time import sleep
 
 import adi
+
+sampling_frequency = 19200
+filter_type = "sinc3"
 
 test_raw1 = 16384  # Test raw DAC code
 test_raw2 = 8192  # Test raw DAC code
@@ -25,37 +28,48 @@ dither_phase_test = (
 # even number channel = 1.249V
 # odd number channel = 0.624V
 standard_channels = [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15]
-toggle_channels = []# [2, 7]
-dither_channels = []# [0, 3]
+toggle_channels = []  # [2, 7]
+dither_channels = []  # [0, 3]
 
 # Device initialization
 
-my_uri="ip:analog.local"
+my_uri = "ip:analog.local"
 
 try:
-    myDAC = adi.ltc2688(uri=my_uri)
+    my_adc = adi.ad7124(uri=my_uri)
+    my_adc.rx_destroy_buffer()  # Just in case... this gives access to raw values.
 
-    for ch in myDAC.channel_names:
-        ch_object = eval("myDAC." + str(ch))
-        id_num = int(ch[7:])
-        if id_num in toggle_channels:
-            ch_object.raw0 = 0
-            ch_object.raw1 = 0
-            ch_object.toggle_en = 0
-            if id_num == 7:
-                print("Channel: " + str(ch) + " function: " + "sw toggle")
-            else:
-                print("Channel: " + str(ch) + " function: " + "hw toggle")
-        elif id_num in dither_channels:
-            ch_object.dither_en = 0
-            if id_num == 3:
-                ch_object.raw = 32768
-            else:
-                ch_object.raw = 0
-            print("Channel: " + str(ch) + " function: " + "dither")
-        else:
-            ch_object.raw = 0
-            print("Channel: " + str(ch) + " function: " + "standard")
+except Exception as e:
+    print(str(e))
+    print("Failed to open AD7124 device")
+    sys.exit(0)
+
+try:
+    my_dac = adi.ltc2688(uri=my_uri)
+
+# From LTC2688 example, should probably be deleted. I don't think we have any
+# special function channels configured in CN0554 overlay.
+# for ch in my_dac.channel_names:
+#     ch_object = eval("my_dac." + str(ch))
+#     id_num = int(ch[7:])
+#     if id_num in toggle_channels:
+#         ch_object.raw0 = 0
+#         ch_object.raw1 = 0
+#         ch_object.toggle_en = 0
+#         if id_num == 7:
+#             print("Channel: " + str(ch) + " function: " + "sw toggle")
+#         else:
+#             print("Channel: " + str(ch) + " function: " + "hw toggle")
+#     elif id_num in dither_channels:
+#         ch_object.dither_en = 0
+#         if id_num == 3:
+#             ch_object.raw = 32768
+#         else:
+#             ch_object.raw = 0
+#         print("Channel: " + str(ch) + " function: " + "dither")
+#     else:
+#         ch_object.raw = 0
+#         print("Channel: " + str(ch) + " function: " + "standard")
 
 except Exception as e:
     print(str(e))
@@ -63,33 +77,47 @@ except Exception as e:
     sys.exit(0)
 
 
-
 # Basic DAC output setting function
 try:
     print("Basic DAC output configuration.")
 
-    myDAC.voltage0.volt = 200
-    myDAC.voltage1.volt = 100
-    myDAC.voltage2.volt = 400
-    myDAC.voltage3.volt = 300
-    myDAC.voltage4.volt = 600
-    myDAC.voltage5.volt = 500
-    myDAC.voltage6.volt = 800
-    myDAC.voltage7.volt = 700
-    myDAC.voltage8.volt = 1000
-    myDAC.voltage9.volt = 900
-    myDAC.voltage10.volt = 1200
-    myDAC.voltage11.volt = 1100
-    myDAC.voltage12.volt = 1400
-    myDAC.voltage13.volt = 1300
-    myDAC.voltage14.volt = 1600
-    myDAC.voltage15.volt = 1500
+    # my_dac.voltage0.volt = 100
+    # my_dac.voltage1.volt = 200
+    # my_dac.voltage2.volt = 300
+    # my_dac.voltage3.volt = 400
+    # my_dac.voltage4.volt = 500
+    # my_dac.voltage5.volt = 600
+    # my_dac.voltage6.volt = 700
+    # my_dac.voltage7.volt = 800
+    # my_dac.voltage8.volt = 900
+    # my_dac.voltage9.volt = 1000
+    # my_dac.voltage10.volt = 1100
+    # my_dac.voltage11.volt = 1200
+    # my_dac.voltage12.volt = 1300
+    # my_dac.voltage13.volt = 1400
+    # my_dac.voltage14.volt = 1500
+    # my_dac.voltage15.volt = 1600
 
-    
+    # Make a staircase of voltages
 
+    my_dac.voltage0.volt = 200
+    my_dac.voltage1.volt = 100
+    my_dac.voltage2.volt = 400
+    my_dac.voltage3.volt = 100
+    my_dac.voltage4.volt = 600
+    my_dac.voltage5.volt = 100
+    my_dac.voltage6.volt = 800
+    my_dac.voltage7.volt = 100
+    my_dac.voltage8.volt = 1000
+    my_dac.voltage9.volt = 100
+    my_dac.voltage10.volt = 1200
+    my_dac.voltage11.volt = 100
+    my_dac.voltage12.volt = 1400
+    my_dac.voltage13.volt = 100
+    my_dac.voltage14.volt = 1600
+    my_dac.voltage15.volt = 100
 
-
-    time.sleep(1)
+    sleep(0.5)
 
 except Exception as e:
     print(str(e))
@@ -97,45 +125,40 @@ except Exception as e:
     sys.exit(0)
 
 
+print("setting sample rate of all channels to ", sampling_frequency)
+print("setting filter type of all channels to ", filter_type)
+print("AD7124 channels:")
 
 
+for i in range(0, len(my_adc.channel)):
+    my_adc.channel[i].sampling_frequency = sampling_frequency
+    my_adc.channel[i].filter_type = filter_type
+    print("channel ", i, " name: ", my_adc.channel[i].name)
 
-my_ad7124 = adi.ad7124(uri=my_uri)
-
-my_ad7124.rx_destroy_buffer() # Just in case... this gives access to raw values.
-
-for i in range(0,len(my_ad7124.channel)):
-    my_ad7124.channel[i].sampling_frequency = 4800
-
-time.sleep(0.1)
+sleep(0.1)
 
 
 print(
     "Welcome to the ad7124 example script, where the local temperature is ",
-    my_ad7124.temp(),
+    my_adc.temp(),
     " degrees C.",
 )
 
 print("Now reading out all raw channels...")
 
-for i in range(0,len(my_ad7124.channel)):
-    print("Channel ", i, ":  ", my_ad7124.channel[i].raw)
+for i in range(0, len(my_adc.channel)):
+    print("Channel ", i, ":  ", my_adc.channel[i].raw)
 
-time.sleep(0.1)
+sleep(0.1)
 
-my_ad7124.rx_destroy_buffer() # Just in case... this gives access to raw values.
+my_adc.rx_destroy_buffer()  # Just in case... this gives access to raw values.
 
-for i in range(0,len(my_ad7124.channel)):
-    my_ad7124.channel[i].sampling_frequency = 4800
+for i in range(0, len(my_adc.channel)):
+    my_adc.channel[i].sampling_frequency = 4800
 
-time.sleep(0.1)
-
-
-
-# del myDAC
-# del my_ad7124
+sleep(0.1)
 
 
-
-
-
+# Clean up...
+del my_dac
+del my_adc
