@@ -4,9 +4,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta content="Bases: sync_start, rx, context_manager" name="description" />
+<meta content="AD552XR DAC driver." name="description" />
 
-    <title>ad9083 &#8212; Analog Devices Hardware Python Interfaces 0.0.22 documentation</title>
+    <title>ad552xr &#8212; Analog Devices Hardware Python Interfaces 0.0.22 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8e8a900e" />
     <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=a8f9a170" />
     <link rel="stylesheet" type="text/css" href="../_static/css/style.css?v=632a43e7" />
@@ -14,8 +14,8 @@
     <link rel="icon" href="../_static/favicon.png"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ad9084" href="adi.ad9084.html" />
-    <link rel="prev" title="ad9081_mc" href="adi.ad9081_mc.html" />
+    <link rel="next" title="ad5592r" href="adi.ad5592r.html" />
+    <link rel="prev" title="ad514x" href="adi.ad514x.html" />
    
   
   
@@ -96,14 +96,10 @@
         </div>
         <nav>
           <ul>
-<li><a class="reference internal" href="#">ad9083</a><ul>
-<li><a class="reference internal" href="#adi.ad9083.ad9083"><code class="docutils literal notranslate"><span class="pre">ad9083</span></code></a><ul>
-<li><a class="reference internal" href="#adi.ad9083.ad9083.nco0_frequency"><code class="docutils literal notranslate"><span class="pre">ad9083.nco0_frequency</span></code></a></li>
-<li><a class="reference internal" href="#adi.ad9083.ad9083.nco1_frequency"><code class="docutils literal notranslate"><span class="pre">ad9083.nco1_frequency</span></code></a></li>
-<li><a class="reference internal" href="#adi.ad9083.ad9083.nco2_frequency"><code class="docutils literal notranslate"><span class="pre">ad9083.nco2_frequency</span></code></a></li>
-<li><a class="reference internal" href="#adi.ad9083.ad9083.reg_read"><code class="docutils literal notranslate"><span class="pre">ad9083.reg_read()</span></code></a></li>
-<li><a class="reference internal" href="#adi.ad9083.ad9083.reg_write"><code class="docutils literal notranslate"><span class="pre">ad9083.reg_write()</span></code></a></li>
-<li><a class="reference internal" href="#adi.ad9083.ad9083.rx_sample_rate"><code class="docutils literal notranslate"><span class="pre">ad9083.rx_sample_rate</span></code></a></li>
+<li><a class="reference internal" href="#">ad552xr</a><ul>
+<li><a class="reference internal" href="#adi.ad552xr.ad552xr"><code class="docutils literal notranslate"><span class="pre">ad552xr</span></code></a><ul>
+<li><a class="reference internal" href="#adi.ad552xr.ad552xr.output_bits"><code class="docutils literal notranslate"><span class="pre">ad552xr.output_bits</span></code></a></li>
+<li><a class="reference internal" href="#adi.ad552xr.ad552xr.sampling_frequency"><code class="docutils literal notranslate"><span class="pre">ad552xr.sampling_frequency</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -167,7 +163,7 @@ Content on this topic
 <li class="toctree-l2"><a class="reference internal" href="adi.ad4630.html">ad4630</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad469x.html">ad469x</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad514x.html">ad514x</a></li>
-<li class="toctree-l2"><a class="reference internal" href="adi.ad552xr.html">ad552xr</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ad552xr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad5592r.html">ad5592r</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad5627.html">ad5627</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad5686.html">ad5686</a></li>
@@ -194,7 +190,7 @@ Content on this topic
 <li class="toctree-l2"><a class="reference internal" href="adi.ad7799.html">ad7799</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad9081.html">ad9081</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad9081_mc.html">ad9081_mc</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">ad9083</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adi.ad9083.html">ad9083</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad9084.html">ad9084</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad9084_mc.html">ad9084_mc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="adi.ad9094.html">ad9094</a></li>
@@ -316,47 +312,24 @@ Content on this topic
 </div>
           <div class="body" role="main">
             
-  <section id="module-adi.ad9083">
-<span id="ad9083"></span><h1>ad9083<a class="headerlink" href="#module-adi.ad9083" title="Link to this heading"></a></h1>
+  <section id="module-adi.ad552xr">
+<span id="ad552xr"></span><h1>ad552xr<a class="headerlink" href="#module-adi.ad552xr" title="Link to this heading"></a></h1>
+<p>AD552XR DAC driver.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="adi.ad9083.ad9083">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adi.ad9083.</span></span><span class="sig-name descname"><span class="pre">ad9083</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.ad9083.ad9083" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="../fpga/index.html#adi.sync_start.sync_start" title="adi.sync_start.sync_start"><code class="xref py py-class docutils literal notranslate"><span class="pre">sync_start</span></code></a>, <a class="reference internal" href="../buffers/index.html#adi.rx_tx.rx" title="adi.rx_tx.rx"><code class="xref py py-class docutils literal notranslate"><span class="pre">rx</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">context_manager</span></code></p>
-<p>AD9083 High-Speed Multi-channel ADC</p>
+<dt class="sig sig-object py" id="adi.ad552xr.ad552xr">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adi.ad552xr.</span></span><span class="sig-name descname"><span class="pre">ad552xr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.ad552xr.ad552xr" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="../buffers/index.html#adi.rx_tx.tx" title="adi.rx_tx.tx"><code class="xref py py-class docutils literal notranslate"><span class="pre">tx</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">context_manager</span></code></p>
+<p>ad552xr DAC.</p>
 <dl class="py property">
-<dt class="sig sig-object py" id="adi.ad9083.ad9083.nco0_frequency">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nco0_frequency</span></span><a class="headerlink" href="#adi.ad9083.ad9083.nco0_frequency" title="Link to this definition"></a></dt>
-<dd><p>nco0_frequency: Get/Set NCO0 frequency</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="adi.ad9083.ad9083.nco1_frequency">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nco1_frequency</span></span><a class="headerlink" href="#adi.ad9083.ad9083.nco1_frequency" title="Link to this definition"></a></dt>
-<dd><p>nco0_frequency: Get/Set NCO1 frequency</p>
+<dt class="sig sig-object py" id="adi.ad552xr.ad552xr.output_bits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">output_bits</span></span><a class="headerlink" href="#adi.ad552xr.ad552xr.output_bits" title="Link to this definition"></a></dt>
+<dd><p>ad552xr channel-wise number of output bits list.</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="adi.ad9083.ad9083.nco2_frequency">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nco2_frequency</span></span><a class="headerlink" href="#adi.ad9083.ad9083.nco2_frequency" title="Link to this definition"></a></dt>
-<dd><p>nco0_frequency: Get/Set NCO2 frequency</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="adi.ad9083.ad9083.reg_read">
-<span class="sig-name descname"><span class="pre">reg_read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.ad9083.ad9083.reg_read" title="Link to this definition"></a></dt>
-<dd><p>Direct Register Access via debugfs</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="adi.ad9083.ad9083.reg_write">
-<span class="sig-name descname"><span class="pre">reg_write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adi.ad9083.ad9083.reg_write" title="Link to this definition"></a></dt>
-<dd><p>Direct Register Access via debugfs</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="adi.ad9083.ad9083.rx_sample_rate">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rx_sample_rate</span></span><a class="headerlink" href="#adi.ad9083.ad9083.rx_sample_rate" title="Link to this definition"></a></dt>
-<dd><p>rx_sampling_frequency: Sample rate after decimation</p>
+<dt class="sig sig-object py" id="adi.ad552xr.ad552xr.sampling_frequency">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sampling_frequency</span></span><a class="headerlink" href="#adi.ad552xr.ad552xr.sampling_frequency" title="Link to this definition"></a></dt>
+<dd><p>ad552xr sampling frequency config.</p>
 </dd></dl>
 
 </dd></dl>
@@ -367,8 +340,8 @@ Content on this topic
           </div>
               <div class="related">
                 &nbsp;
-    <a href="adi.ad9081_mc.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">ad9081_mc</a>
-    <a href="adi.ad9084.html" title="Next document (Alt+Shift+RightArrow)" class="next">ad9084</a>
+    <a href="adi.ad514x.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">ad514x</a>
+    <a href="adi.ad5592r.html" title="Next document (Alt+Shift+RightArrow)" class="next">ad5592r</a>
               </div>
           
         </div>
