@@ -765,6 +765,15 @@ lm75:
       - data_devices:
           - hwmon0
 
+ltc4284:
+  - ltc4284
+  - pyadi_iio_class_support:
+      - ltc4284
+  - emulate:
+      - filename: ltc4284.xml
+      - data_devices:
+          - hwmon1
+
 ad405x:
  - ad4052
  - pyadi_iio_class_support:
