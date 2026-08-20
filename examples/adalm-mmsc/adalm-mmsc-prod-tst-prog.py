@@ -27,7 +27,7 @@ parser.add_argument(
 parser.add_argument(
     "-p",
     "--ad4080_com_port",
-    default="COM17",
+    default="COM6",
     help="ADALM-MMSC port, COMx (Windows) or /dev/ttyx (Linux)",
 )
 args = vars(parser.parse_args())
@@ -125,7 +125,7 @@ if (55.0 < fft_results["sinad"] < 70.0) is False:
 
 
 # Tests to run: Start with CIN and CF in 100 pF position
-# Set resistors to minimum resistance (RM). Run baseline distortion / THD test at 100 kHz.
+# Set resistors to minimum resistance (RL/LOW). Run baseline distortion / THD test at 100 kHz.
 # Save amplitude. Re-run at 500 kHz - verify dropped by less than 2 dB from baseline
 # Prompt to set jumpers to mid resistance. Verify dropped by between 3 and 5 dB from baseline.
 # Prompt to set jumpers to high resistance. Verify dropped by between 10 and 14 dB from baseline.
@@ -156,7 +156,7 @@ results.append("500 kHz RL mag.: " + str(fft_results["A:mag_dbfs"]))
 
 
 # Verify RM
-input("VerifyRA, RB set to RM MID value. Hit Enter to continue.")
+input("Verify RA, RB set to RM MID value. Hit Enter to continue.")
 data_in_raw = my_ad4080.rx()
 data_in = data_in_raw * my_ad4080.channel[0].scale / 1e3  # Scale is in millivolts/code
 fft_results = workshop.fourier_analysis(
