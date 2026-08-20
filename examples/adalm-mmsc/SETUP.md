@@ -119,8 +119,14 @@ The two boards are addressed **differently** — this is the key gotcha:
 
 | Device | Role | How to address it | Verified |
 |---|---|---|---|
-| **ADALM2000 (M2K)** | signal **source** | `libm2k.m2kOpen()` (auto → `usb:1.7.5`) | ✅ |
+| **ADALM2000 (M2K)** | signal **source** | `libm2k.m2kOpen()` (auto-detect; URI varies) | ✅ |
 | **ADALM-MMSC (AD4080)** | ADC **sink** | `adi.ad4080("serial:COM4,115200")` | ✅ 40 Msps |
+
+> **⚠️ The M2K USB address is NOT stable.** It re-enumerates across reconnect/reboot —
+> e.g. it has been seen as both `usb:1.7.5` and `usb:1.18.5` on this machine. **Always
+> scan first** (next command) and pass whatever `scan_contexts()` reports that day; don't
+> hard-code a URI. `libm2k.m2kOpen()` with no argument auto-detects and is the safest
+> default when only one M2K is attached.
 
 > **The AD4080 is NOT an IIO USB/network context — it is a SERIAL (COM) device.**
 > `iio.scan_contexts()` only ever shows the M2K; that is expected and does not mean
@@ -198,4 +204,6 @@ See `requirements.txt` for exact pinned versions.
 - numpy 2.4.6 · scipy 1.17.1 · matplotlib 3.11.1 · genalyzer 0.1.4 ·
   pyadi-iio 0.0.21 · pylibiio 0.25 · pyserial 3.5 · paramiko 5.0.0 ·
   **libm2k 0.9.0** (`v0.9.0-gce0cf95`)
-- M2K: `usb:1.7.5` (libm2k) · AD4080: `serial:COM4,115200`, 40 Msps
+- M2K: `usb:1.7.5` at the time of this verification (libm2k) — **address is not stable,
+  since seen as `usb:1.18.5`; scan first, don't hard-code** · AD4080: `serial:COM4,115200`,
+  40 Msps
