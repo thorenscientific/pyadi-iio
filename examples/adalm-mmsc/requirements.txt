@@ -1,0 +1,31 @@
+# ADALM-MMSC (AD4080) DSP examples — Python requirements
+# Verified working in C:\phase0\.venv (Python 3.11.9) on 2026-08-05.
+# Install:  python -m pip install -r requirements.txt
+#
+# IMPORTANT — Python 3.11 required. libm2k ships only as a cp311 wheel here
+# (libm2k-0.9.0-cp311-...), so the whole env is pinned to 3.11. numpy/scipy
+# newest builds need >=3.12, hence the sub-2.5 numpy pin below.
+#
+# libm2k is NOT on PyPI. Install the local wheel separately AFTER this file:
+#   python -m pip install \
+#     "C:/Users/JGEALON/OneDrive - Analog Devices, Inc/My Documents/ADALM-MMSC (AD4080)/pyadi-iio/libm2k-0.9.0-cp311-cp311-win_amd64.whl"
+# Without libm2k only simulated_data.py (04) runs; with it, all 15 examples run.
+
+# --- Core numerics / plotting ---
+numpy==2.4.6          # <2.5 for Python 3.11 compatibility
+scipy==1.17.1
+matplotlib==3.11.1
+
+# --- DSP analysis: FFT, SNR/SINAD/ENOB/THD, quantize (import genalyzer / gn) ---
+genalyzer==0.1.4
+
+# --- IIO device access ---
+pylibiio==0.25        # low-level IIO (import iio) — context/device discovery
+pyadi-iio==0.0.21     # high-level AD4080 device class (import adi)
+
+# --- Hardware / remote access ---
+pyserial==3.5         # COM-port + serial console (import serial)
+paramiko==5.0.0       # SSH to board (used by the test programs)
+
+# --- M2K signal source (install from local wheel, see header) ---
+# libm2k==0.9.0        # cp311 wheel only; NOT pip-installable from PyPI
