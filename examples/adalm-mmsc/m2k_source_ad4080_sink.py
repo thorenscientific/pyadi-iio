@@ -114,7 +114,7 @@ aout.push([awf])  # Would be [awf0, awf1] if sending data to multiple channels
 data_in_raw = my_ad4080.rx()
 
 # Convert ADC codes to Volts
-data_in = data_in_raw * my_ad4080.channel[0].scale / 1e6  # Scale is in microvolts/code
+data_in = data_in_raw * my_ad4080.channel[0].scale / 1e3  # Scale is in millivolts/code
 
 # 5. Analyze recorded waveform
 workshop.fourier_analysis(
